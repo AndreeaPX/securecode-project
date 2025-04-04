@@ -1,0 +1,16 @@
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
+venv\Scripts\activate
+
+psql -U postgres -d secure_code_db -h localhost
+
+Goal	Command
+🔍 List all tables	\dt
+🔍 Describe a table	\d users_user (or any table name)
+🔍 Show all databases	\l
+🔍 Switch DB	\c secure_code_db
+🔍 Query data (like SELECT)	SELECT * FROM users_user;
+🔍 See invitations	SELECT * FROM users_userinvitation;
+🔍 Exit psql	\q
+
+
+QJW67L77D76VPLKCBE8EN5LX

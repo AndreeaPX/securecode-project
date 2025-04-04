@@ -1,0 +1,19 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Face Recognition Login</title>
+    <link rel="stylesheet" href="{% static 'css/face_login_admin.css' %}">
+  </head>
+
+  <body>
+    <h1>👁 Face Recognition Secure Admin</h1>
+    <div class="video-container">
+      <input type="email" id="face-login-email" placeholder="Email" required>
+      <video id="video" autoplay></video><br>
+      <button onclick="captureFace()">Login</button>
+    </div>
+    <script src="{% static 'js/face_login_admin.js' %}"></script>
+  </body>
+</html>

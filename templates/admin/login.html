@@ -1,0 +1,103 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+<style>
+  body.login {
+    background-color: #111;
+    font-family: 'Segoe UI', sans-serif;
+  }
+
+  .custom-login-box {
+    background-color: #1f1f1f;
+    border-radius: 12px;
+    padding: 40px;
+    max-width: 400px;
+    margin: 100px auto;
+    box-shadow: 0 0 25px rgba(0,0,0,0.3);
+    color: white;
+  }
+
+  .custom-login-box h1 {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  .custom-login-box label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+
+  .custom-login-box input[type="text"],
+  .custom-login-box input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    background-color: #2c2c2c;
+    color: white;
+  }
+
+  .custom-login-box input[type="submit"] {
+    width: 100%;
+    margin-top: 25px;
+    padding: 12px;
+    border: none;
+    background-color: #0d6efd;
+    color: white;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .face-login {
+    display: block;
+    margin-top: 20px;
+    text-align: center;
+    padding: 10px;
+    background-color: #28a745;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+
+  .errornote {
+    color: #ff6b6b;
+    text-align: center;
+    font-size: 14px;
+    margin-bottom: 15px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+  <div class="custom-login-box">
+
+    <h1>🔐 Login Admin</h1>
+
+    {% if form.errors %}
+      <p class="errornote">
+        {% trans "Please correct the error below." %}
+      </p>
+    {% endif %}
+
+    <form action="" method="post" id="login-form">
+      {% csrf_token %}
+      <label for="id_username">{% trans 'Email' %}</label>
+      <input type="text" name="username" id="id_username" required autofocus>
+
+      <label for="id_password">{% trans 'Password or OTP' %}</label>
+      <input type="password" name="password" id="id_password" required>
+
+      <input type="submit" value="{% trans 'Log in' %}">
+    </form>
+
+    <a href="{% url 'face_login_admin' %}" class="face-login" style="color: white;">
+      Biometric Login 👁
+    </a>
+  </div>
+{% endblock %}

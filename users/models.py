@@ -43,11 +43,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
     face_encoding = models.BinaryField(null=True, blank=True)
+    face_image = models.ImageField(upload_to="user_faces/", null=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     first_login = models.BooleanField(default=True)
-
+    failed_face_attempts = models.IntegerField(default=0)
     #extra
     first_name = models.TextField(null = True)
     last_name = models.TextField(null = True)

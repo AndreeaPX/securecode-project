@@ -1,19 +1,91 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <title>Face Recognition Login</title>
-    <link rel="stylesheet" href="{% static 'css/face_login_admin.css' %}">
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login with Face Recognition</title>
+  <link rel="stylesheet" href="{% static 'css/face_login_admin.css' %}" />
+</head>
+<body>
+  <div class="page-wrapper">
+    <div class="card">
+      <h2>Login with Face Recognition</h2>
+      <form id="register-form" method="POST">
+        {% csrf_token %}
+        <input type="email" name="email" id="email" placeholder="name@role.ase.ro" required />
+        <input type="hidden" name="face_image" id="face_image"/>
+        <div class="camera-container">
+          <video id="video" autoplay></video>
+          <canvas id="canvas" width="360" height="200" style="display:none;"></canvas>
+        </div>
 
-  <body>
-    <h1>👁 Face Recognition Secure Admin</h1>
-    <div class="video-container">
-      <input type="email" id="face-login-email" placeholder="Email" required>
-      <video id="video" autoplay></video><br>
-      <button onclick="captureFace()">Login</button>
+        <button type="button" id="capture-button">Capture Face</button>
+        <button type="submit">Login</button>
+      </form>
+      <div id="message"></div>
     </div>
-    <script src="{% static 'js/face_login_admin.js' %}"></script>
-  </body>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureButton = document.getElementById('capture-button');
+    const registerForm = document.getElementById('register-form');
+    const messageDiv = document.getElementById('message');
+
+    let capturedImage = null;
+    navigator.mediaDevices.getUserMedia({video:true}).then((stream) =>{
+      video.srcObject = stream 
+    }).catch((err)=>{
+      console.log("Error accessing the camera")
+      messageDiv.innerHTML = "Camera is not accessible."
+    })
+
+    captureButton.addEventListener('click',()=>{
+      if(!video.srcObject){
+        messageDiv.innerHTML = "Please allow camera use.";
+        return;
+      }
+      const context = canvas.getContext("2d");
+      context.drawImage(video,0,0,canvas.width,canvas.height);
+      capturedImage = canvas.toDataURL('image/jpeg');
+      messageDiv.innerHTML = "Face captured successfully.";
+    })
+
+    registerForm.onsubmit = async (e) =>
+    {
+      e.preventDefault();
+      if(!capturedImage){
+        messageDiv.innerHTML = "Please capture an image first.";
+        return;
+      }
+      const formData = new FormData(registerForm);
+      formData.append('face_image', capturedImage);
+      const csrfToken = document.querySelector('input[name=csrfmiddlewaretoken]').value;
+      const response = await fetch('',{
+        method:'POST',
+        headers:{
+          'X-CSRFToken':csrfToken
+        },
+        body: formData
+      });
+      const data = await response.json();
+      if(data.success){
+        window.location.href = "/admin/";
+        messageDiv.innerHTML = "Login successful.";
+      } else if (data.error){
+        messageDiv.innerHTML = `Error : ${data.error}`;
+      } else if (data.message){
+        messageDiv.innerHTML = data.message;
+      }
+    };
+
+  </script>
+
+
+</body>
 </html>
+
+
+

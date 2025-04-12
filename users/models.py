@@ -7,31 +7,33 @@ import datetime
 import logging
 
 class UserManager(BaseUserManager):
-
     logger = logging.getLogger(__name__)
 
     def create_user(self, email, password=None, **extra_fields):
-        try:
-            if not email:
-                raise ValueError("Email is required")
-            email = self.normalize_email(email) #trim + lowecase
-            user = self.model(email=email, **extra_fields)
-            user.set_password(password) #PBKDF2 with SHA256  -> random salt  260,000+ by default (as of Django 5.x)
-            user.save()
-            return user
-        except Exception as e:
-            self.logger.error(f"[create_user] Failed: {str(e)}")
-            raise
+        if not email:
+            raise ValueError("Email is required")
+        if not (email.endswith("@stud.ase.ro") or email.endswith(".ase.ro")):
+            raise ValueError("Only ASE institutional emails are allowed")
+
+        email = self.normalize_email(email)
+
+        if email.endswith("@stud.ase.ro"):
+            extra_fields.setdefault("role", "student")
+        elif email.endswith("@admin.ase.ro"):
+            extra_fields.setdefault("role", "admin")
+        else:
+            extra_fields.setdefault("role", "professor")
+
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save()
+        return user
 
     def create_superuser(self, email, password=None, **extra_fields):
-        try:
-            extra_fields.setdefault('is_staff', True)
-            extra_fields.setdefault('is_superuser', True)
-            extra_fields.setdefault('first_login', False)  
-            return self.create_user(email, password, **extra_fields)
-        except Exception as e:
-            self.logger.error(f"[create_superuser] Failed: {str(e)}")
-            raise
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('first_login', False)
+        return self.create_user(email, password, **extra_fields)
 
 class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = (
@@ -49,27 +51,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True)
     first_login = models.BooleanField(default=True)
     failed_face_attempts = models.IntegerField(default=0)
-    #extra
-    first_name = models.TextField(null = True)
-    last_name = models.TextField(null = True)
+    first_name = models.CharField(max_length=100, null=True)
+    last_name = models.CharField(max_length=100, null=True)
     start_date = models.DateField(default=datetime.date.today)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []  
+    REQUIRED_FIELDS = []
 
     objects = UserManager()
 
-    def save(self, *args, **kwargs):
-        if self.email.endswith("@stud.ase.ro"):
-            self.role = "student"
-        elif self.email.endswith(".ase.ro") and not self.email.endswith("@admin.ase.ro"):
-            self.role = "professor"
-        elif self.email.endswith("@admin.ase.ro"):
-            self.role = "admin"
-        else:
-            raise ValueError("Only ASE institutional emails are allowed")
-    
-        super().save(*args, **kwargs)
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}".strip()
 
     def __str__(self):
         return self.email
@@ -77,27 +70,36 @@ class User(AbstractBaseUser, PermissionsMixin):
 class UserInvitation(models.Model):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=50, choices=[('student', 'Student'), ('professor', 'Professor'), ('admin', 'Admin')])
-    otp_token = models.CharField(max_length=128,null=True, blank=True)
+    otp_token = models.CharField(max_length=128, null=True, blank=True)
     is_used = models.BooleanField(default=False)
     expires_at = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
     failed_attempts = models.IntegerField(default=0)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["expires_at", "is_used"]),
+        ]
 
     def is_expired(self):
         return timezone.now() > self.expires_at
 
     def __str__(self):
         return f"{self.email} ({self.role})"
-    
 
 class Faculty(models.Model):
     name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=10, unique=True)
+    dean = models.CharField(max_length=100, null=True, blank=True)
+
     def __str__(self):
-        return self.name
+        return f"{self.code} - {self.name}"
 
 class Specialization(models.Model):
     name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=10, unique=True)
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name="specializations")
+
     def __str__(self):
         return f"{self.name} ({self.faculty.name})"
 
@@ -107,40 +109,34 @@ class Course(models.Model):
     year = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(3)])
     semester = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(2)])
     is_optional = models.BooleanField(default=False)
-    specialization = models.ForeignKey(
-        Specialization, on_delete=models.CASCADE, related_name="courses"
-    )
-
-    filter_key = models.CharField(max_length=100, editable=False)
-    def save(self, *args, **kwargs):
-        self.filter_key = f"{self.year}_{self.specialization.id}"
-        super().save(*args, **kwargs)
+    specialization = models.ForeignKey(Specialization, on_delete=models.CASCADE, related_name="courses")
+    description = models.TextField(null=True, blank=True)
+    is_ai_enabled = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.code} - {self.name}"
 
 class StudentProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='student_profile')
-    TYPE_CHOICES = (('b', 'Bachelor'),('m', 'Master'),('d', 'Doctorate'))
+    TYPE_CHOICES = (('b', 'Bachelor'), ('m', 'Master'), ('d', 'Doctorate'))
     group_type = models.CharField(max_length=15, choices=TYPE_CHOICES, default='b')
-    group = models.IntegerField(default=1000)
     year = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(3)])
-    specialization = models.ForeignKey(
-        Specialization, on_delete=models.CASCADE, related_name="students"
-    )
+    specialization = models.ForeignKey(Specialization, on_delete=models.CASCADE, related_name="students")
+    group = models.IntegerField(default=1000)
+    series = models.CharField(max_length=10, null=True, blank=True)
+    subgroup = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(2)], default=1)
+    start_year = models.IntegerField(default=datetime.date.today().year)
     courses = models.ManyToManyField(Course)
 
     def __str__(self):
-        return self.user.email
+        return f"{self.user.email} - Y{self.year} - Gr{self.group}"
 
 class ProfessorProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='proffesor_profile')
     teaches_lecture = models.BooleanField(default=False)
     teaches_seminar = models.BooleanField(default=False)
-    specialization = models.ForeignKey(
-        Specialization, on_delete=models.CASCADE, related_name="professors"
-    )
+    specialization = models.ForeignKey(Specialization, on_delete=models.CASCADE, related_name="professors")
     courses = models.ManyToManyField(Course)
+
     def __str__(self):
         return self.user.email
-

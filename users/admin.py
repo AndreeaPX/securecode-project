@@ -50,43 +50,38 @@ class CustomAdminUser(UserAdmin):
             obj.set_unusable_password()
             super().save_model(request=request,obj=obj, form=form,change=change)
 
-            UserInvitation.objects.filter(email=obj.email, is_used=False)
+            UserInvitation.objects.filter(email=obj.email).delete()
 
-            UserInvitation.objects.update_or_create(
+            UserInvitation.objects.create(
                 email = obj.email,
-                defaults={
-                    "role": obj.role,
-                    "otp_token": otp_hash,
-                    "is_used": False,
-                    "expires_at": expires_at,
-                },
+                role = obj.role,
+                otp_token=otp_hash,
+                is_used = False,
+                expires_at = expires_at,
             )
 
-            print(otp_hash)
-            print(otp_token)
-
+            login_url = "https://localhost:5173/login"
             if obj.role == "admin":
-                login_url = "http://localhost:8000/admin/"
-            else:
-                login_url = "http://localhost:5173/login"
-
-            send_mail(
-                subject="You're invited to SecureCode",
-                message=(
-                    f"Hello,\n\n"
-                    f"You’ve been added to SecureCode as a {obj.role}.\n"
-                    f"Use this one-time code: {otp_token}\n"
-                    f"Login here: {login_url}\n\n"
-                    f"This code expires in 24 hours.\n\n"
-                    f"– SecureCode Team"
-            ),
+                login_url = "https://localhost:8000/admin/"
+            try:
+                send_mail(
+                    subject="You're invited to SecureCode",
+                    message=(
+                        f"Hello,\n\n"
+                        f"You’ve been added to SecureCode as a {obj.role}.\n"
+                        f"Use this one-time code: {otp_token}\n"
+                        f"Login here: {login_url}\n\n"
+                        f"This code expires in 24 hours.\n\n"
+                        f"– SecureCode Team"
+                ),
                 from_email="panandreea77@gmail.com",
                 recipient_list=[obj.email],
                 fail_silently=False,
-            )
-        else :
-            super().save_model(request=request,obj=obj,form=form, change=change)
-
+                )
+            except Exception as e :
+                self.message_user(request, f"User created but email failed: {str(e)}", level='error')
+        else:
+            super().save_model(request=request, obj=obj, form=form, change=change)
 @admin.register(Faculty)
 class CustomFacultyAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):

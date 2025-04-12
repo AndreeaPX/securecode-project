@@ -86,6 +86,9 @@ class UserInvitation(models.Model):
 
     def __str__(self):
         return f"{self.email} ({self.role})"
+    
+    def is_blocked(self):
+        return self.failed_attempts>=5
 
 class Faculty(models.Model):
     name = models.CharField(max_length=100, unique=True)

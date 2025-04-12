@@ -42,7 +42,7 @@ class CustomLoginForm(forms.Form):
             
             if invitation.is_expired():
                 raise forms.ValidationError("This code has expired.")
-            if invitation.failed_attempts >= 5:
+            if invitation.is_blocked():
                 raise forms.ValidationError("Too many failed attemps. This code is not longer valid.")
             
             if not check_password(password, invitation.otp_token):
@@ -55,7 +55,7 @@ class CustomLoginForm(forms.Form):
             invitation.failed_attempts = 0
             invitation.save()
 
-            user.set_password(password)
+            user.set_unusable_password()
             user.first_login = False
             user.save()
 

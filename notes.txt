@@ -1,5 +1,6 @@
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
 venv\Scripts\activate
+python manage.py runserver_plus --cert-file certs/localhost.pem --key-file certs/localhost-key.pem
 
 psql -U postgres -d secure_code_db -h localhost
 

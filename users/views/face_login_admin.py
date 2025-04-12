@@ -9,9 +9,18 @@ import face_recognition
 import tempfile
 import os
 import pickle
+from rest_framework.decorators import api_view, throttle_classes
+from users.throttles import FaceLoginThrottle
 
+
+@api_view(['GET','POST'])
+@throttle_classes([FaceLoginThrottle])
 @csrf_protect
 def face_login_admin(request):
+
+    if request.method == 'GET':
+        return render(request, 'face_login_admin.html')
+
     if request.method == "POST":
         try:
             email = request.POST.get("email")
@@ -71,4 +80,4 @@ def face_login_admin(request):
                 return JsonResponse({"error": "Face does not match."}, status=401)
         except Exception as e:
              return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
-    return render(request, 'face_login_admin.html')
+    

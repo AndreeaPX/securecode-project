@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'django_extensions',
     'users',
 ]
 
@@ -209,3 +210,12 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 LOGIN_URL = "/admin/login/"
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://localhost:5173",
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "https://localhost:5173",
+]
+
+CORS_ALLOW_CREDENTIALS = True

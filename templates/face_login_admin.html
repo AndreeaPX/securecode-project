@@ -70,10 +70,16 @@
         },
         body: formData
       });
+
+      if (response.status === 429) {
+        const data = await response.json();
+        messageDiv.innerHTML = `${data.detail || "Prea multe încercări. Încearcă mai târziu."}`;
+        return;
+      }
       const data = await response.json();
       if(data.success){
-        window.location.href = "/admin/";
-        messageDiv.innerHTML = "Login successful.";
+      window.location.href = data.redirect_url || "/admin/";
+      messageDiv.innerHTML = "Login successful.";
       } else if (data.error){
         messageDiv.innerHTML = `Error : ${data.error}`;
       } else if (data.message){

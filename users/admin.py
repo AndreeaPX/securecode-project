@@ -7,6 +7,7 @@ from datetime import timedelta
 from django.contrib.auth.hashers import make_password
 from django.http import JsonResponse
 from django.urls import path
+from django.conf import settings
 
 from .models import User, UserInvitation, Faculty, Specialization, Course, StudentProfile, ProfessorProfile
 from .forms import CustomUserChangeForm, CustomUserCreationForm
@@ -74,7 +75,7 @@ class CustomAdminUser(UserAdmin):
                         f"This code expires in 24 hours.\n\n"
                         f"– SecureCode Team"
                 ),
-                from_email="panandreea77@gmail.com",
+                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[obj.email],
                 fail_silently=False,
                 )
@@ -82,6 +83,8 @@ class CustomAdminUser(UserAdmin):
                 self.message_user(request, f"User created but email failed: {str(e)}", level='error')
         else:
             super().save_model(request=request, obj=obj, form=form, change=change)
+
+
 @admin.register(Faculty)
 class CustomFacultyAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
@@ -92,6 +95,7 @@ class CustomFacultyAdmin(admin.ModelAdmin):
     
 @admin.register(Specialization)
 class CustomSpecializationAdmin(admin.ModelAdmin):
+    search_fields = ("name", "code")
     def has_add_permission(self, request):
         return request.user.is_superuser
     
@@ -100,7 +104,7 @@ class CustomSpecializationAdmin(admin.ModelAdmin):
 
 @admin.register(Course)
 class CustomCourseAdmin(admin.ModelAdmin):
-
+    search_fields = ("name", "code")
     list_display = ("name", "code", "year", "semester", "is_optional", "specialization")
     list_filter = ("year", "semester", "is_optional", "specialization__faculty")
 
@@ -112,9 +116,11 @@ class CustomCourseAdmin(admin.ModelAdmin):
 
 @admin.register(StudentProfile)
 class CustomStudentProfileAdmin(admin.ModelAdmin):
+    search_fields = ("user__email",)
+    autocomplete_fields = ('user', 'specialization', 'courses')
     list_display = ("user","group_type","group", "year", "specialization")
     list_filter = ("user","group_type", "group","year", "specialization", "specialization__faculty")
-    search_fields = ("user__email",)
+    
     class Media:
         js = ('js/dynamic_course_filter.js',)
 
@@ -133,13 +139,13 @@ class CustomStudentProfileAdmin(admin.ModelAdmin):
         if not (year and specialization):
             return JsonResponse([], safe=False)
 
-        filter_key = f"{year}_{specialization}"
-        courses = Course.objects.filter(filter_key=filter_key).values("id", "name")
-
+        courses = Course.objects.filter(year=year,specialization_id=specialization).values("id", "name")
         return JsonResponse(list(courses), safe=False)   
         
 @admin.register(ProfessorProfile)
 class ProfessorProfileAdmin(admin.ModelAdmin):
+    search_fields = ("user__email",)
+    autocomplete_fields = ('user', 'specialization', 'courses')
     list_display = ("specialization", "teaches_lecture", "teaches_seminar")
     list_filter = ("teaches_lecture", "teaches_seminar", "specialization", "specialization__faculty")
-    search_fields = ("user__email",)
+   

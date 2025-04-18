@@ -63,6 +63,7 @@ def face_login_admin(request):
                 user.face_encoding = pickle.dumps(uploaded_encoding)
                 user.failed_face_attempts = 0
                 user.save()
+                user.backend = 'users.backends.FaceAuthBackend'
                 login(request, user)
                 return JsonResponse({"success": True, "message": "Face registered & logged in."})
 
@@ -72,6 +73,7 @@ def face_login_admin(request):
             if match:
                 user.failed_face_attempts = 0
                 user.save()
+                user.backend = 'users.backends.FaceAuthBackend'
                 login(request, user)
                 return JsonResponse({"success": True, "message": "Login successful."})
             else: 

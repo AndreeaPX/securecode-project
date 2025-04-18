@@ -1,6 +1,7 @@
 from django.contrib.auth.backends import BaseBackend
 from users.models import User
 
+
 class EmailAuthBackend(BaseBackend):
     def authenticate(self, request, email=None, password=None, **kwargs):
         try:
@@ -11,6 +12,19 @@ class EmailAuthBackend(BaseBackend):
             return None
 
     def get_user(self, user_id):
+        try:
+            return User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return None
+
+class FaceAuthBackend(BaseBackend):
+    def authenticate(self, request, user=None, **kwargs):
+        if user and user.is_active:
+            return user
+        return None
+
+    def get_user(self, user_id):
+        from users.models import User
         try:
             return User.objects.get(pk=user_id)
         except User.DoesNotExist:

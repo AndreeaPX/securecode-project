@@ -80,10 +80,19 @@
     <h1>🔐 Login Admin</h1>
 
     {% if form.errors %}
+    {% if form.non_field_errors %}
+      <ul class="errorlist">
+        {% for error in form.non_field_errors %}
+          <li class="errornote">{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
       <p class="errornote">
         {% trans "Please correct the error below." %}
       </p>
     {% endif %}
+    {% endif %}
+
 
     <form action="" method="post" id="login-form">
       {% csrf_token %}

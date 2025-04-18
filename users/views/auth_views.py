@@ -69,7 +69,8 @@ class ChangePasswordAPIView(APIView):
         try:
             validate_password(new_password)
         except Exception as e:
-            return Response({"error": list(e)}, status=400)
+            return Response({"error": [str(msg) for msg in e.messages]}, status=400)
+
 
         user.set_password(new_password)
         user.first_login = False
@@ -86,4 +87,8 @@ class CustomLoginView(FormView):
         user = form.get_user()
         login(self.request, user)
         return super().form_valid(form)
+
+    
+
+
     

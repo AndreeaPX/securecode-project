@@ -49,7 +49,6 @@ class CustomLoginForm(forms.Form):
                 invitation.failed_attempts += 1
                 invitation.save()
                 raise forms.ValidationError("Wrong code.")
-            
             invitation.is_used = True
             invitation.otp_token = None
             invitation.failed_attempts = 0

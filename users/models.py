@@ -5,15 +5,17 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.conf import settings
 import datetime
 import logging
+import re
+from django.core.exceptions import ValidationError
 
 class UserManager(BaseUserManager):
-    logger = logging.getLogger(__name__)
 
     def create_user(self, email, password=None, **extra_fields):
         if not email:
-            raise ValueError("Email is required")
-        if not (email.endswith("@stud.ase.ro") or email.endswith(".ase.ro")):
-            raise ValueError("Only ASE institutional emails are allowed")
+            raise ValueError("Email is required.")
+        email_regex = r'^[\w\.-]+@(?:stud\.ase\.ro|admin\.ase\.ro|[^@]+\.ase\.ro)$'
+        if not re.match(email_regex, email):
+            raise ValueError("Only ASE institutional emails are allowed.")
 
         email = self.normalize_email(email)
 
@@ -42,7 +44,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('student', 'Student'),
     )
 
-    email = models.EmailField(unique=True)
+    email = models.EmailField(unique=True, verbose_name='Institutional Email', help_text="ASE Address")
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
     face_encoding = models.BinaryField(null=True, blank=True)
     face_image = models.ImageField(upload_to="user_faces/", null=True)
@@ -123,23 +125,41 @@ class StudentProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='student_profile')
     TYPE_CHOICES = (('b', 'Bachelor'), ('m', 'Master'), ('d', 'Doctorate'))
     group_type = models.CharField(max_length=15, choices=TYPE_CHOICES, default='b')
-    year = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(3)])
+    year = models.IntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(3)])
     specialization = models.ForeignKey(Specialization, on_delete=models.CASCADE, related_name="students")
-    group = models.IntegerField(default=1000)
+    group = models.IntegerField(validators=[MinValueValidator(1000), MaxValueValidator(9999)], default=1000)
     series = models.CharField(max_length=10, null=True, blank=True)
     subgroup = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(2)], default=1)
     start_year = models.IntegerField(default=datetime.date.today().year)
     courses = models.ManyToManyField(Course)
 
+    def clean(self):
+        current = timezone.now().year
+        if self.start_year > current:
+            raise ValidationError("Start year cannot be in the future.")
+        if self.group < 1000 or self.group > 9999:
+            raise ValidationError("Group must be between 1000 and 9999.")
+        if self.subgroup not in [1, 2]:
+            raise ValidationError("Subgroup must be 1 or 2.")
+
     def __str__(self):
         return f"{self.user.email} - Y{self.year} - Gr{self.group}"
+    
+    
 
 class ProfessorProfile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='proffesor_profile')
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='professor_profile')
     teaches_lecture = models.BooleanField(default=False)
     teaches_seminar = models.BooleanField(default=False)
     specialization = models.ForeignKey(Specialization, on_delete=models.CASCADE, related_name="professors")
     courses = models.ManyToManyField(Course)
+
+    def clean(self):
+        if not self.teaches_lecture and not self.teaches_seminar:
+            raise ValidationError("Professor must teach either a lecture or a seminar (or both).")
+
+        if not self.courses.exists():
+            raise ValidationError("Professor must be assigned to at least one course.")
 
     def __str__(self):
         return self.user.email

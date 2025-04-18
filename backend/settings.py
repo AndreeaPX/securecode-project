@@ -26,6 +26,10 @@ SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", cast=bool)
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SECURE_SSL_REDIRECT = False
+
 
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 
@@ -54,7 +58,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -144,11 +147,13 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.AnonRateThrottle',
         'users.throttles.BurstRateThrottle',
         'users.throttles.SustainedRateThrottle',
+        'users.throttles.FaceLoginThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '5/minute',
         'burst': '10/minute',
-        'sustained':'15/hour'
+        'sustained':'15/hour',
+        'face_login':'5/minutes',
     }
 }
 
@@ -203,7 +208,12 @@ EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
 
-AUTHENTICATION_BACKENDS = ['users.backends.EmailAuthBackend']
+AUTHENTICATION_BACKENDS = [
+    'users.backends.EmailAuthBackend', 
+    'users.backends.FaceAuthBackend',   
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 USE_DJANGO_JQUERY = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]

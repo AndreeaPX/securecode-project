@@ -1,5 +1,5 @@
 from django.contrib.auth.backends import BaseBackend
-from users.models import User
+from users.models.core import User
 
 
 class EmailAuthBackend(BaseBackend):
@@ -24,7 +24,7 @@ class FaceAuthBackend(BaseBackend):
         return None
 
     def get_user(self, user_id):
-        from users.models import User
+        from users.models.core import User
         try:
             return User.objects.get(pk=user_id)
         except User.DoesNotExist:

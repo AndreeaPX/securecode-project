@@ -1,0 +1,39 @@
+.welcome-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 97vw; 
+    background: linear-gradient(135deg, #1f1c2c, #928dab);
+    padding: 2rem 4rem;
+    border-radius: 0 0 12px 12px;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    margin: 0 -1rem 2rem -1rem; 
+    overflow-x: hidden;
+  }
+  
+  .welcome-text h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .welcome-text p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+  }
+  
+  .highlight {
+    color: #a78bfa;
+    font-weight: 600;
+  }
+  
+  .highlight.good {
+    color: #6ee7b7;
+  }
+  
+  .welcome-image img {
+    width: 300px;
+    height: auto;
+    object-fit: contain;
+  }
+  

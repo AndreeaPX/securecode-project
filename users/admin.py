@@ -9,8 +9,12 @@ from django.http import JsonResponse
 from django.urls import path
 from django.conf import settings
 
-from .models import User, UserInvitation, Faculty, Specialization, Course, StudentProfile, ProfessorProfile
+from .models.core import User, UserInvitation, Faculty, Specialization, Course, StudentProfile, ProfessorProfile
 from .forms import CustomUserChangeForm, CustomUserCreationForm
+
+from .models.questions import Question, AnswerOption
+from .models.tests import Test,TestQuestion,TestAssignment,StudentAnswer,StudentActivityLog
+
 
 
 @admin.register(User)
@@ -59,26 +63,29 @@ class CustomAdminUser(UserAdmin):
                 otp_token=otp_hash,
                 is_used = False,
                 expires_at = expires_at,
+                failed_attempts = 0,
+                invited_by  = request.user
             )
 
             login_url = "https://localhost:5173/login"
             if obj.role == "admin":
                 login_url = "https://localhost:8000/admin/"
             try:
-                send_mail(
-                    subject="You're invited to SecureCode",
-                    message=(
-                        f"Hello,\n\n"
-                        f"You’ve been added to SecureCode as a {obj.role}.\n"
-                        f"Use this one-time code: {otp_token}\n"
-                        f"Login here: {login_url}\n\n"
-                        f"This code expires in 24 hours.\n\n"
-                        f"– SecureCode Team"
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[obj.email],
-                fail_silently=False,
-                )
+                # send_mail(
+                #     subject="You're invited to SecureCode",
+                #     message=(
+                #         f"Hello,\n\n"
+                #         f"You’ve been added to SecureCode as a {obj.role}.\n"
+                #         f"Use this one-time code: {otp_token}\n"
+                #         f"Login here: {login_url}\n\n"
+                #         f"This code expires in 24 hours.\n\n"
+                #         f"– SecureCode Team"
+                # ),
+                # from_email=settings.DEFAULT_FROM_EMAIL,
+                # recipient_list=[obj.email],
+                # fail_silently=False,
+                # )
+                print(otp_token)
             except Exception as e :
                 self.message_user(request, f"User created but email failed: {str(e)}", level='error')
         else:
@@ -146,6 +153,67 @@ class CustomStudentProfileAdmin(admin.ModelAdmin):
 class ProfessorProfileAdmin(admin.ModelAdmin):
     search_fields = ("user__email",)
     autocomplete_fields = ('user', 'specialization', 'courses')
-    list_display = ("specialization", "teaches_lecture", "teaches_seminar")
+    list_display = ("user__email","specialization", "teaches_lecture", "teaches_seminar")
     list_filter = ("teaches_lecture", "teaches_seminar", "specialization", "specialization__faculty")
    
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+    list_display = ("text", "type", "course", "created_by", "is_shared", "is_generated_ai")
+    list_filter = ("type", "is_shared", "is_generated_ai", "course")
+    search_fields = ("text",)
+    readonly_fields = [f.name for f in Question._meta.fields]
+
+
+@admin.register(AnswerOption)
+class AnswerOptionAdmin(admin.ModelAdmin):
+    list_display = ("question", "text", "is_correct")
+    search_fields = ("text",)
+    list_filter = ("is_correct",)
+    readonly_fields = [f.name for f in AnswerOption._meta.fields]
+
+
+@admin.register(Test)
+class TestAdmin(admin.ModelAdmin):
+    list_display = ("name", "type", "course", "professor", "start_time", "deadline")
+    list_filter = ("type", "course", "professor")
+    search_fields = ("name",)
+    readonly_fields = [f.name for f in Test._meta.fields]
+
+
+@admin.register(TestQuestion)
+class TestQuestionAdmin(admin.ModelAdmin):
+    list_display = ("test", "question", "order", "is_required")
+    search_fields = ("question__text",)
+    list_filter = ("is_required",)
+    readonly_fields = [f.name for f in TestQuestion._meta.fields]
+
+
+@admin.register(TestAssignment)
+class TestAssignmentAdmin(admin.ModelAdmin):
+    list_display = ("test", "student", "started_at", "finished_at", "attempt_no")
+    search_fields = ("student__email",)
+    list_filter = ("test", "student")
+    readonly_fields = [
+        f.name for f in TestAssignment._meta.fields if f.name not in ["manual_score", "reviewed_by"]
+    ]
+
+
+@admin.register(StudentAnswer)
+class StudentAnswerAdmin(admin.ModelAdmin):
+    list_display = ("assignment", "question", "needs_manual_review")
+    search_fields = ("assignment__student__email", "question__text")
+    list_filter = ("needs_manual_review",)
+    readonly_fields = [f.name for f in StudentAnswer._meta.fields]
+
+
+@admin.register(StudentActivityLog)
+class StudentActivityLogAdmin(admin.ModelAdmin):
+    list_display = ("assignment", "question", "timestamp", "focus_lost_count", "copy_paste_events")
+    list_filter = ("assignment", "timestamp", "focus_lost_count", "copy_paste_events")
+    readonly_fields = [f.name for f in StudentActivityLog._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

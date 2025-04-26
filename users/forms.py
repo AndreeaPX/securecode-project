@@ -1,8 +1,8 @@
 from django import forms
-from .models import User
+from .models.core import User
 from django.contrib.auth import authenticate
 from django.utils import timezone
-from users.models import UserInvitation
+from users.models.core import UserInvitation
 from django.contrib.auth.hashers import check_password
 
 class CustomUserCreationForm(forms.ModelForm):

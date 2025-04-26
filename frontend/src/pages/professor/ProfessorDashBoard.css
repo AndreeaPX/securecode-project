@@ -1,0 +1,92 @@
+/* General reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  html, body {
+    overflow-x: hidden;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #1f1c2c, #3f3b5b); /* mov închis spre deschis */
+    color: white;
+  }
+  
+  /* Layout base */
+  .dashboard-page {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  
+  .dashboard-widgets {
+    display: grid;
+    width: 96vw;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 2rem;
+  }
+  
+  .widget {
+    background-color: #1f1c2c;
+    padding: 1.5rem 2rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Section titles */
+  .card-title {
+    text-align: left;
+    font-size: 1.4rem;
+    margin-bottom: 1.2rem;
+    color: #ffffff;
+    padding-bottom: 0.4rem;
+  }
+  
+  /* Stats Section */
+  .dashboard-stats-section {
+    margin-top: 2rem;
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    width: 96vw;
+  }
+  
+  /* Individual stat card */
+  .stat-card {
+    background-color: #1f1c2c;
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    min-height: 300px;
+  }
+  
+  /* Biometric summary fix */
+  .stat-card ul {
+    list-style-type: disc;
+    margin-top: 1rem;
+    padding-left: 1.5rem;
+  }
+  
+  .stat-card li {
+    margin-bottom: 0.6rem;
+    font-size: 1rem;
+  }
+  
+  /* Separator lines */
+  hr.section-divider {
+    width: 96vw;
+    border: none;
+    height: 1px;
+    background-color: #ccc;
+    margin: 2rem 0;
+  }
+  

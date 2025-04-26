@@ -1,0 +1,53 @@
+.settings-page {
+  padding: 2rem 4rem; /* padding mai generos în stânga */
+  max-width: 1000px;
+  margin-left: 0; /* aliniere la stânga */
+}
+
+.settings-card {
+  background: linear-gradient(135deg, #1f1c2c, #3f3b5b);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  padding: 2rem 3rem;
+  color: white;
+  text-align: left; /* 🔥 aliniere text */
+}
+
+.settings-card h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid white;
+  padding-bottom: 0.5rem;
+  text-align: left; /* 🔥 */
+}
+
+.info-group {
+  margin-bottom: 2rem;
+  text-align: left; /* 🔥 */
+}
+
+.info-group p {
+  margin: 0.4rem 0;
+  font-size: 1rem;
+}
+
+.info-group h3 {
+  margin-top: 1rem;
+  color: #a78bfa;
+}
+
+.change-password-button {
+  background-color: #8a2be2;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+  display: inline-block;
+  margin-top: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.change-password-button:hover {
+  background-color: #a78bfa;
+}

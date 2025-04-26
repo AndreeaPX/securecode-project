@@ -29,6 +29,8 @@ class UserLoginAPIView(GenericAPIView):
             "id": user.id,
             "email": user.email,
             "role": user.role,
+            "first_name":user.first_name,
+            "last_name":user.last_name,
             "first_login": user.first_login,
             "tokens": {
                 "refresh": str(refresh),
@@ -89,6 +91,5 @@ class CustomLoginView(FormView):
         return super().form_valid(form)
 
     
-
 
     

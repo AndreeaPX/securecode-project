@@ -1,0 +1,51 @@
+.student-progress-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .student-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  
+  .student-info {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-weight: 500;
+  }
+  
+  .avatar-placeholder {
+    width: 32px;
+    height: 32px;
+    background-color: #8a2be2;
+    color: white;
+    font-weight: bold;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .progress-bar {
+    flex: 1;
+    background-color: #333;
+    border-radius: 6px;
+    overflow: hidden;
+    height: 8px;
+    margin-right: 0.5rem;
+  }
+  
+  .progress-fill {
+    background-color: #8a2be2;
+    height: 100%;
+    transition: width 0.4s ease-in-out;
+  }
+  
+  .progress-value {
+    font-size: 0.9rem;
+  }
+  

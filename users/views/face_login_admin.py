@@ -4,7 +4,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.core.files.base import ContentFile
 from django.shortcuts import render
 from django.contrib.auth import login
-from users.models import User
+from users.models.core import User
 import face_recognition
 import tempfile
 import os

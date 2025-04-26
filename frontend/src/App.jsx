@@ -1,10 +1,12 @@
-import './App.css'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Home from './pages/Home'
-import Layout from './pages/Layout'
-import Login from './pages/Login'
-import ChangePassword from './pages/ChangePassword'
-import { useEffect } from 'react'
+import "./App.css";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import Layout from "./layouts/Layout";
+import Login from "./auth/Login";
+import ChangePassword from "./auth/ChangePassword";
+import Settings from "./pages/Settings";
+import { useEffect } from "react";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   useEffect(() => {
@@ -16,14 +18,26 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path='/' element={<Layout />}>
+        {/* Protected Routes */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Home />} />
-          <Route path='login' element={<Login />} />
-          <Route path='/change-password' element={<ChangePassword />} />
+          <Route path="settings" element={<Settings />} />
+          {/*pagini protejate de adaugat */}
         </Route>
+
+        {/* Public Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/change-password" element={<ChangePassword />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;

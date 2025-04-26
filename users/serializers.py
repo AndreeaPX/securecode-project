@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, UserInvitation
+from .models.core import User, UserInvitation, ProfessorProfile, Course, Specialization, StudentProfile
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.hashers import check_password
 from django.utils import timezone
@@ -9,7 +9,7 @@ User = get_user_model()
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "email", "role")
+        fields = ("id", "email", "role", "first_name", "last_name")
 
 User = get_user_model()
 
@@ -56,7 +56,57 @@ class UserLoginSerializer(serializers.Serializer):
 
         invitation.is_used = True
         invitation.failed_attempts = 0
+        invitation.used_at = timezone.now()
         invitation.otp_token = None
         invitation.save()
 
         return user
+
+class CourseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Course
+        fields = ["code", "name"]
+
+class SpecializationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Specialization
+        fields = ["name","code"]
+
+
+class ProfessorProfileSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source = "user.email")
+    start_date = serializers.DateField(source = "user.start_date")
+
+    specialization = SpecializationSerializer()
+    courses = CourseSerializer(many = True)
+
+    class Meta:
+        model = ProfessorProfile
+        fields = [
+            "email",
+            "start_date",           
+            "specialization",
+            "courses",
+            "teaches_lecture",
+            "teaches_seminar"
+        ]
+
+class StudentProfileSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source = "user.email")
+    start_date = serializers.DateField(source = "user.start_date")
+    specialization = SpecializationSerializer()
+    courses = CourseSerializer(many = True)
+
+    class Meta:
+        model = StudentProfile
+        fields = [
+            "email",
+            "start_date",
+            "specialization",
+            "courses",
+            "group_type",
+            "group",
+            "series",
+            "subgroup",
+            "year"
+        ]

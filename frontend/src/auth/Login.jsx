@@ -51,11 +51,7 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(userData));
       setUser(userData);
 
-      if (userData.first_login) {
-        navigate("/change-password");
-      } else {
-        navigate("/");
-      }
+      navigate("/face-login");
     } catch (error) {
       alert("Invalid credentials or something went wrong");
     }

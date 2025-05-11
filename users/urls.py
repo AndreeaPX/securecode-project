@@ -18,6 +18,8 @@ from .views.settings_view import (
 from .views.attachments_view import QuestionAttachmentAPIView
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from .views.face_login_admin import face_login_react
+
 
 router = DefaultRouter()
 router.register(r'questions', QuestionViewApi, basename='questions')
@@ -34,6 +36,7 @@ urlpatterns = [
     path('courses/', CoursesAPIView.as_view(), name='courses-list'),
     path("questions/<int:question_id>/attachments/", QuestionAttachmentAPIView.as_view(), name="upload-question-attachment"),
     path('tests/<int:test_id>/questions/', TestQuestionsByTestIdAPIView.as_view(), name='test-questions-by-test'),
+    path("face-login/", face_login_react, name="face-login-react"),
     path('', include(router.urls)),
 ]
 

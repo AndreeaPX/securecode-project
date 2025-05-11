@@ -7,7 +7,6 @@ class SafeLoginThrottle(UserRateThrottle):
     scope = 'safe_login'
 
     def allow_request(self, request, view):
-        # Nu throttle-uim GET / OPTIONS ever
         if request.method in ['GET', 'OPTIONS']:
             return True
 

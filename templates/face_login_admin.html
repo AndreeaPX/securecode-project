@@ -73,7 +73,7 @@
 
       if (response.status === 429) {
         const data = await response.json();
-        messageDiv.innerHTML = `${data.detail || "Prea multe încercări. Încearcă mai târziu."}`;
+        messageDiv.innerHTML = `${data.detail || "Too many failed attempts, please try again later."}`;
         return;
       }
       const data = await response.json();

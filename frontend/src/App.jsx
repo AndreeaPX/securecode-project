@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import Layout from "./layouts/Layout";
 import Login from "./auth/Login";
 import ChangePassword from "./auth/ChangePassword";
+import FaceLogin from "./auth/FaceLogin";
 import Settings from "./pages/Settings";
 import Questions from "./pages/professor/Questions";
 import CreateQuestion from './pages/professor/question_components/CreateQuestion';
@@ -48,6 +49,7 @@ function App() {
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/face-login" element={<FaceLogin />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,0 +1,64 @@
+.face-login-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding-left: 15vw;
+  color: #fff;
+}
+
+.face-login-card {
+  background-color: #1a1a2e;
+  color: white;
+  padding: 40px 30px;
+  border-radius: 16px;
+  box-shadow: 0 0 20px rgba(170, 51, 255, 0.3);
+  max-width: 750px;
+  width: 100%;
+  text-align: center;
+}
+
+.face-login-card h2 {
+  font-size: 26px;
+  color: #c084fc;
+  margin-bottom: 20px;
+}
+
+.face-login-camera {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.face-login-camera video {
+  width: 100%;
+  border-radius: 10px;
+  background: black;
+}
+
+.face-login-camera canvas {
+  width: 100%;
+  border-radius: 10px;
+  display: none;
+}
+
+.face-login-button {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  background: linear-gradient(90deg, #a855f7, #6b21a8);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.face-login-button:hover {
+  background: linear-gradient(90deg, #7e22ce, #5b21b6);
+}
+
+.face-login-message {
+  margin-top: 16px;
+  font-size: 14px;
+  color: #ddd;
+}

@@ -1,4 +1,8 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views.questions_view import QuestionViewApi, CoursesAPIView
+from .views.tests_view import TestViewSet, TestQuestionViewSet, TestQuestionsByTestIdAPIView
+
 from .views.auth_views import (
     UserLoginAPIView,
     UserLogoutAPIView,
@@ -10,7 +14,15 @@ from .views.settings_view import (
     StudentSettingsAPIView,
 )
 
+
+from .views.attachments_view import QuestionAttachmentAPIView
 from rest_framework_simplejwt.views import TokenRefreshView
+
+
+router = DefaultRouter()
+router.register(r'questions', QuestionViewApi, basename='questions')
+router.register(r'tests',TestViewSet, basename='tests')
+router.register(r'test-questions', TestQuestionViewSet, basename='test-questions')
 
 urlpatterns = [
     path("login/", UserLoginAPIView.as_view(), name="login-user"),
@@ -19,4 +31,9 @@ urlpatterns = [
     path("change-password/", ChangePasswordAPIView.as_view(), name="change-password"),
     path("settings/professor/", ProfessorSettingsAPIView.as_view(), name="professor-settings"),
     path("settings/student/", StudentSettingsAPIView.as_view(), name="student-settings"),
+    path('courses/', CoursesAPIView.as_view(), name='courses-list'),
+    path("questions/<int:question_id>/attachments/", QuestionAttachmentAPIView.as_view(), name="upload-question-attachment"),
+    path('tests/<int:test_id>/questions/', TestQuestionsByTestIdAPIView.as_view(), name='test-questions-by-test'),
+    path('', include(router.urls)),
 ]
+

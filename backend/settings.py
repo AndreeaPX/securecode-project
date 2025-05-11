@@ -13,9 +13,13 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 from decouple import config, Csv
+import os
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+MEDIA_URL = '/media/'         
+MEDIA_ROOT = BASE_DIR / 'media' 
 
 
 # Quick-start development settings - unsuitable for production
@@ -46,6 +50,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_extensions',
+    'django_filters',
     'users',
 ]
 
@@ -140,29 +145,27 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
 
 REST_FRAMEWORK = {
-        'DEFAULT_AUTHENTICATION_CLASSES': (
-            'rest_framework_simplejwt.authentication.JWTAuthentication',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-     'DEFAULT_THROTTLE_CLASSES': [
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ],
+    'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
-        'users.throttles.BurstRateThrottle',
-        'users.throttles.SustainedRateThrottle',
-        'users.throttles.FaceLoginThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '5/minute',
-        'burst': '10/minute',
-        'sustained':'15/hour',
-        'face_login':'5/minutes',
+        'anon': '30/minute',        # ce vrei tu default pt random vizitatori
+        'safe_login': '5/minute',   # doar pentru login, face login, refresh token
     }
 }
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    "ROTATE_REFRESH_TOKENS": True, #every time a token is refreshed, a new one is created 
-    "BLACKLIST_AFTER_ROTATION": True, #the old token is blacklisted
+    "ROTATE_REFRESH_TOKENS": False, #every time a token is refreshed, a new one is created 
+    "BLACKLIST_AFTER_ROTATION": False, #the old token is blacklisted
     "UPDATE_LAST_LOGIN": False,
 
     "ALGORITHM": "HS256",

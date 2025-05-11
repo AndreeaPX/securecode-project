@@ -1,0 +1,139 @@
+.questions-page {
+  padding: 2rem;
+  min-height: 100vb;
+  width: 100vw;
+  font-family: 'Inter', sans-serif;
+  color: #1f2937;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.questions-content {
+  width: 100vw;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Search and filters section */
+.search-filters-container {
+  background: white;
+  width: 100%;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+/* Inputs inside search area */
+.search-filters-container input,
+.search-filters-container select {
+  padding: 0.7rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #f9fafb;
+  color: #1f2937;
+  min-width: 180px;
+}
+
+.search-filters-container button {
+  background-color: #6a0dad;
+  border: none;
+  color: white;
+  padding: 0.7rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.search-filters-container button:hover {
+  background-color: #4b0082;
+}
+
+/* Questions table container */
+.questions-table-container {
+  background: white;
+  color: #4b0082;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(58, 13, 103, 0.08);
+  overflow-x: auto;
+}
+
+/* Table inside */
+.questions-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.questions-table th,
+.questions-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.questions-table thead {
+  background: #1f1c2c;
+}
+
+.questions-table th {
+  color: white;
+  font-weight: 600;
+}
+
+.questions-table tbody tr:hover {
+  background: #f1f5f9;
+}
+
+.questions-table td {
+  color: #1f2937;
+}
+
+.questions-table td button {
+  background-color: #40185d;
+  border: none;
+  color: white;
+  padding: 0.5rem 1rem;
+  margin-right: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.questions-table td button:hover {
+  background-color: #4b0082;
+  transform: translateY(-2px);
+}
+
+/* Floating button aligned inside page */
+.floating-create-button {
+  position:fixed;
+  bottom: 2rem;
+  right: calc((100vw - 1400px) / 2 - 2rem);
+  background-color: #7018af;
+  color: white;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 50px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(106, 13, 173, 0.4);
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.floating-create-button:hover {
+  background-color: #4b0082;
+  transform: scale(1.05);
+}

@@ -12,7 +12,7 @@ from django.conf import settings
 from .models.core import User, UserInvitation, Faculty, Specialization, Course, StudentProfile, ProfessorProfile
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 
-from .models.questions import Question, AnswerOption
+from .models.questions import Question, AnswerOption, QuestionAttachment
 from .models.tests import Test,TestQuestion,TestAssignment,StudentAnswer,StudentActivityLog
 
 
@@ -156,9 +156,14 @@ class ProfessorProfileAdmin(admin.ModelAdmin):
     list_display = ("user__email","specialization", "teaches_lecture", "teaches_seminar")
     list_filter = ("teaches_lecture", "teaches_seminar", "specialization", "specialization__faculty")
    
+class QuestionAttachmentInline(admin.TabularInline):
+    model = QuestionAttachment
+    extra = 1
+
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ("text", "type", "course", "created_by", "is_shared", "is_generated_ai")
+    inlines = [QuestionAttachmentInline]
+    list_display = ("text", "type", "course", "created_by", "is_shared", "is_generated_ai", "is_code_question", "language")
     list_filter = ("type", "is_shared", "is_generated_ai", "course")
     search_fields = ("text",)
     readonly_fields = [f.name for f in Question._meta.fields]

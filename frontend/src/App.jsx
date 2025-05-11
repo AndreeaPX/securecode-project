@@ -5,6 +5,12 @@ import Layout from "./layouts/Layout";
 import Login from "./auth/Login";
 import ChangePassword from "./auth/ChangePassword";
 import Settings from "./pages/Settings";
+import Questions from "./pages/professor/Questions";
+import CreateQuestion from './pages/professor/question_components/CreateQuestion';
+import QuestionView from './pages/professor/question_components/QuestionView';
+import Tests from "./pages/professor/Tests";
+import CreateTest from "./pages/professor/test_components/CreateTest";
+
 import { useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -28,8 +34,15 @@ function App() {
           }
         >
           <Route index element={<Home />} />
-          <Route path="settings" element={<Settings />} />
-          {/*pagini protejate de adaugat */}
+          <Route path="/settings" element={<Settings />} />
+
+          <Route path="/questions" element={<Questions />} />
+          <Route path="/questions/create" element={<CreateQuestion />} />
+          <Route path="/questions/edit/:questionId" element={<CreateQuestion/>}/>
+          <Route path="/questions/view/:questionId" element={<QuestionView readonly={true} />} />
+          <Route path="/tests" element={<Tests />} />
+          <Route path="/tests/create" element={<CreateTest />} />
+          <Route path="/tests/edit/:testId" element={<CreateTest editMode={true} />} />
         </Route>
 
         {/* Public Routes */}

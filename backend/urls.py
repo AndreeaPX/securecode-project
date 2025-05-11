@@ -19,12 +19,13 @@ from django.urls import path, include
 from users.views.face_login_admin import face_login_admin
 from users.views.auth_views import CustomLoginView
 from users.views.csrf import get_csrf_token
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path("login/", CustomLoginView.as_view(), name="custom_login"),
     path('admin/', admin.site.urls),
     path("api/", include("users.urls")),
     path("face-login-admin/", face_login_admin, name="face_login_admin"),
-    path("csrf/", get_csrf_token, name = "get_csrf")
-
-]
+    path("csrf/", get_csrf_token, name = "get_csrf"),
+]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

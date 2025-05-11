@@ -1,0 +1,99 @@
+.question-view-page {
+    justify-content: center;
+    padding: 2rem;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    font-family: 'Inter', sans-serif;
+    color: #1f2937;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+  
+  
+  .question-view-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    color: #1f2937;
+  }
+  
+  .question-view-form label {
+    font-weight: 600;
+    color: #4b0082;
+  }
+  
+  .question-view-form input[type="text"],
+  .question-view-form input[type="number"],
+  .question-view-form select,
+  .question-view-form textarea {
+    color: #1f2937;
+    padding: 0.7rem 1rem;
+    font-size: 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background-color: #f9fafb;
+    resize: vertical;
+    width: 100%;
+  }
+  
+  .options-section {
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background-color: #f9fafb;
+  }
+  
+  .option-item {
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.8rem;
+  }
+  
+  .correct-answer-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  
+  .question-meta {
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 1rem;
+  }
+  
+  .test-integration-panel {
+    margin-top: 2rem;
+    padding: 1rem;
+    background: #f1f5f9;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+  
+  .test-integration-panel select,
+  .test-integration-panel button {
+    width: 100%;
+  }
+  
+  .test-integration-panel button {
+    background-color: #6a0dad;
+    color: white;
+    padding: 0.7rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .test-integration-panel button:hover {
+    background-color: #4b0082;
+  }
+  

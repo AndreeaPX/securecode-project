@@ -5,12 +5,16 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.password_validation import validate_password
-from users.serializers import UserLoginSerializer
+from users.serializers.core import UserLoginSerializer
 from users.forms import CustomLoginForm
 from django.contrib.auth import login
 from django.views.generic import FormView
 from django.urls import reverse_lazy
+from rest_framework.decorators import throttle_classes
+from users.throttles import SafeLoginThrottle
 
+
+@throttle_classes([SafeLoginThrottle])
 class UserLoginAPIView(GenericAPIView):
     permission_classes = (AllowAny,)
     serializer_class = UserLoginSerializer
@@ -25,6 +29,8 @@ class UserLoginAPIView(GenericAPIView):
             user.save()
 
         refresh = RefreshToken.for_user(user)
+        SafeLoginThrottle.reset(request)
+
         return Response({
             "id": user.id,
             "email": user.email,
@@ -87,7 +93,13 @@ class CustomLoginView(FormView):
 
     def form_valid(self, form):
         user = form.get_user()
+
+        throttle = SafeLoginThrottle()
+        if not throttle.allow_request(self.request, self):
+            return self.form_invalid(form)
+
         login(self.request, user)
+        SafeLoginThrottle.reset(self.request)
         return super().form_valid(form)
 
     

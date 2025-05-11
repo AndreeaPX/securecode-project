@@ -56,71 +56,88 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 429){
+    if (error.response?.status === 429) {
       alert("Too many tries. Please try to login again later.");
       return Promise.reject(error);
     }
 
-    if(error.response?.status === 400){
-      const message = error.response.data?.detail || "The request is not valid. Please verify the input data.";
+    if (error.response?.status === 400) {
+      const message =
+        error.response.data?.detail ||
+        "The request is not valid. Please verify the input data.";
       alert(message);
       return Promise.reject(error);
     }
 
-    //response of  unauthorized  = expired 
+    // ✳️ LOGICĂ REFRESH TOKEN
     if (error.response?.status === 401 && !originalRequest._retry) {
+      console.warn("401 received – trying to refresh access token.");
       originalRequest._retry = true;
       const refreshToken = localStorage.getItem("refreshToken");
 
-      //if there is no refresh token logic
-      if(!refreshToken){
-        console.warn("The refresh token is missig. Please, log in again.")
+      if (!refreshToken) {
+        console.warn("⚠️ No refresh token found – redirecting to login.");
         window.location.href = "/login?expired=true";
         return Promise.reject(error);
       }
 
-
-      if(isRefreshing){
+      if (isRefreshing) {
         return new Promise((resolve) => {
-          addRefreshSubscriber((newToken)=>{
+          addRefreshSubscriber((newToken) => {
             originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
             resolve(axiosInstance(originalRequest));
           });
         });
       }
 
-
       isRefreshing = true;
 
-      try{
+      try {
         const res = await axios.post(
-          `${import.meta.env.VITE_API_URL}token/refresh/`,{ refresh: refreshToken }
+          `${import.meta.env.VITE_API_URL}token/refresh/`,
+          { refresh: refreshToken }
         );
+        
         const newAccessToken = res.data.access;
-        localStorage.setItem("accessToken",newAccessToken);
+        const newRefreshToken = res.data.refresh;
+        
+        localStorage.setItem("accessToken", newAccessToken);
+        
+        if (newRefreshToken) {
+          localStorage.setItem("refreshToken", newRefreshToken);
+        }
+        localStorage.setItem("accessToken", newAccessToken);
 
-        axiosInstance.defaults.headers["Authorization"] = `Bearer ${newAccessToken}`;
-        originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+        axiosInstance.defaults.headers[
+          "Authorization"
+        ] = `Bearer ${newAccessToken}`;
+        originalRequest.headers[
+          "Authorization"
+        ] = `Bearer ${newAccessToken}`;
+
         onTokenRefreshed(newAccessToken);
         return axiosInstance(originalRequest);
-      }catch(refreshError){
-        console.warn("Refresh token invalid. Redirecting.");
+      } catch (refreshError) {
+        setTimeout(() => {
+          console.error("Refresh token failed:", refreshError.response?.data || refreshError.message);
+        }, 2000);
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         window.location.href = "/login?expired=true";
         return Promise.reject(refreshError);
-      } finally{
+      } finally {
         isRefreshing = false;
       }
     }
+
     return Promise.reject(error);
   }
 );
+
 
 export default axiosInstance;

@@ -10,11 +10,11 @@ import tempfile
 import os
 import pickle
 from rest_framework.decorators import api_view, throttle_classes
-from users.throttles import FaceLoginThrottle
+from users.throttles import SafeLoginThrottle
 
 
 @api_view(['GET','POST'])
-@throttle_classes([FaceLoginThrottle])
+@throttle_classes([SafeLoginThrottle])
 @csrf_protect
 def face_login_admin(request):
 
@@ -65,6 +65,7 @@ def face_login_admin(request):
                 user.save()
                 user.backend = 'users.backends.FaceAuthBackend'
                 login(request, user)
+                SafeLoginThrottle.reset(request)
                 return JsonResponse({"success": True, "message": "Face registered & logged in."})
 
             stored_encoding = pickle.loads(user.face_encoding)
@@ -75,6 +76,7 @@ def face_login_admin(request):
                 user.save()
                 user.backend = 'users.backends.FaceAuthBackend'
                 login(request, user)
+                SafeLoginThrottle.reset(request)
                 return JsonResponse({"success": True, "message": "Login successful."})
             else: 
                 user.failed_face_attempts+=1

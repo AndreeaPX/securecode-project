@@ -31,8 +31,16 @@ export const AuthProvider = ({ children }) => {
         (event.key === "accessToken" || event.key === "refreshToken") &&
         event.newValue === null
       ) {
-        setUser(null);
-        window.location.href = "/login?expired=true";
+        setTimeout(()=>{
+            const newToken = localStorage.getItem("accessToken");
+            if(!newToken){
+              console.warn("Token missing after delay, logging out is happening.");
+              setUser(null);
+              window.location.href = "/login?expired=true";
+            }else{
+              console.info("Token is back, skip logout");
+            }
+        },300);
       }
     };
 

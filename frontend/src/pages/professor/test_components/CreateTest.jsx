@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../../../api/axios";
 import { useAuth } from "../../../components/AuthProvider";
-import "../../../styles/Questions.css";
+import "../../../styles/CreateTest.css";
 
 export default function CreateTest({ editMode }) {
   const { user } = useAuth();
@@ -27,6 +27,8 @@ export default function CreateTest({ editMode }) {
     allow_copy_paste: false,
     use_proctoring: false,
     has_ai_assistent: false,
+    maxim_points:90,
+    extra_points:10,
     target_series: "",
     target_group: "",
     target_subgroup: ""
@@ -100,6 +102,43 @@ export default function CreateTest({ editMode }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    //validations
+    const start = new Date(testData.start_time);
+    const end = new Date(testData.deadline);
+    if(isNaN(start) || isNaN(end)){
+      alert("Please add the start date and deadline for this test.");
+      return;
+    }
+    if(start < new Date()){
+      alert("The test must be in the future.");
+      return;
+    }
+
+    const startH = start.getHours();
+    const endH = end.getHours();
+
+    if (startH < 7 || startH >= 24 || endH < 7 || endH >= 24){
+      alert("Start and deadline times must be between 7 AM and 12 PM.");
+      return;
+    }
+
+    const actualDuration = Math.floor((end-start)/(1000*60));
+    if(testData.duration_minutes > actualDuration){
+      alert("Duration exceeds the time window between start and deadline.");
+      return;
+    }
+
+    const totalPoints = Number(testData.maxim_points) + Number(testData.extra_points);
+    if(totalPoints !== 100){
+      alert("The total points must be 100.");
+      return;
+    }
+
+    if(testData.type !== "training" && Number(testData.allowed_attempts) !== 1){
+      alert("Only training tests can have more than one attempt.");
+      return;
+    }
 
     try {
       const payload = { ...testData };
@@ -243,7 +282,25 @@ export default function CreateTest({ editMode }) {
           min={1}
         />
 
-        {testData.type === "training" && (
+        <input
+          type = "number"
+          name = "maxim_points"
+          placeholder="Total Points"
+          value={testData.maxim_points}
+          onChange={handleChange}
+          min={0}
+        />
+
+        <input 
+          type="number"
+          name="extra_points"
+          placeholder="Extra Points"
+          value={testData.extra_points}
+          onChange={handleChange}
+          min={0}
+        />
+
+        {testData.type === "training" ? (
           <input
             type="number"
             name="allowed_attempts"
@@ -252,6 +309,9 @@ export default function CreateTest({ editMode }) {
             onChange={handleChange}
             min={1}
           />
+
+        ): (
+          <p style={{fontSize: "0.9rem"}}>Only 1 attempt is allowed for exams and official tests</p>
         )}
 
         <div className="checkbox-group">
@@ -284,9 +344,9 @@ export default function CreateTest({ editMode }) {
           </label>
         </div>
 
-        <input type="text" name="target_series" placeholder="Series (optional)" value={testData.target_series || ""} onChange={handleChange} />
-        <input type="number" name="target_group" placeholder="Group (optional)" value={testData.target_group || ""} onChange={handleChange} />
-        <input type="number" name="target_subgroup" placeholder="Subgroup (optional)" value={testData.target_subgroup || ""} onChange={handleChange} />
+        <input type="text" name="target_series" placeholder="Series" value={testData.target_series || ""} onChange={handleChange} />
+        <input type="number" name="target_group" placeholder="Group" value={testData.target_group || ""} onChange={handleChange} />
+        <input type="number" name="target_subgroup" placeholder="Subgroup" value={testData.target_subgroup || ""} onChange={handleChange} />
 
         {currentQuestions.length > 0 && (
         <div className="options-section">

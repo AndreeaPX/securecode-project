@@ -22,6 +22,8 @@ class Test(models.Model):
     allow_copy_paste = models.BooleanField(default=False)
     use_proctoring = models.BooleanField(default=False)
     has_ai_assistent = models.BooleanField(default=False)
+    maxim_points = models.IntegerField(default=90, null=False)
+    extra_points = models.IntegerField(default=10, null=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     target_series = models.CharField(max_length=10, null=True, blank=True)

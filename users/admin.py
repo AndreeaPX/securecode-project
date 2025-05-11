@@ -9,7 +9,7 @@ from django.http import JsonResponse
 from django.urls import path
 from django.conf import settings
 
-from .models.core import User, UserInvitation, Faculty, Specialization, Course, StudentProfile, ProfessorProfile
+from .models.core import User, UserInvitation, Faculty, Specialization, Course, StudentProfile, ProfessorProfile, Series, Group
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 
 from .models.questions import Question, AnswerOption, QuestionAttachment
@@ -86,6 +86,7 @@ class CustomAdminUser(UserAdmin):
                 # fail_silently=False,
                 # )
                 print(otp_token)
+                print(obj.email)
             except Exception as e :
                 self.message_user(request, f"User created but email failed: {str(e)}", level='error')
         else:
@@ -108,6 +109,20 @@ class CustomSpecializationAdmin(admin.ModelAdmin):
     
     def has_delete_permission(self, request, obj = None):
         return request.user.is_superuser
+    
+@admin.register(Series)
+class SeriesAdmin(admin.ModelAdmin):
+    list_display = ("name", "year", "group_type", "specialization")
+    list_filter = ("year", "group_type", "specialization__name")
+    search_fields = ("name",)
+    autocomplete_fields = ("specialization",)
+
+@admin.register(Group)
+class GroupAdmin(admin.ModelAdmin):
+    list_display = ("number", "series")
+    list_filter = ("series__year", "series__group_type")
+    search_fields = ("number",)
+    autocomplete_fields = ("series",)
 
 @admin.register(Course)
 class CustomCourseAdmin(admin.ModelAdmin):
@@ -152,9 +167,11 @@ class CustomStudentProfileAdmin(admin.ModelAdmin):
 @admin.register(ProfessorProfile)
 class ProfessorProfileAdmin(admin.ModelAdmin):
     search_fields = ("user__email",)
-    autocomplete_fields = ('user', 'specialization', 'courses')
-    list_display = ("user__email","specialization", "teaches_lecture", "teaches_seminar")
+    autocomplete_fields = ('user', 'specialization', 'courses', 'seminar_groups', 'lecture_series')
+    list_display = ("user__email", "specialization", "teaches_lecture", "teaches_seminar")
     list_filter = ("teaches_lecture", "teaches_seminar", "specialization", "specialization__faculty")
+    filter_horizontal = ("seminar_groups", "lecture_series")
+
    
 class QuestionAttachmentInline(admin.TabularInline):
     model = QuestionAttachment

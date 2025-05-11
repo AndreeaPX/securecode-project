@@ -7,8 +7,10 @@ import datetime
 import re
 from django.core.exceptions import ValidationError
 
-class UserManager(BaseUserManager):
 
+# -------------------- User Manager --------------------
+
+class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("Email is required.")
@@ -35,6 +37,9 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('first_login', False)
         return self.create_user(email, password, **extra_fields)
+
+
+# -------------------- User --------------------
 
 class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = (
@@ -68,6 +73,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
+
+# -------------------- OTP Invitation --------------------
+
 class UserInvitation(models.Model):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=10, choices=[('student', 'Student'), ('professor', 'Professor'), ('admin', 'Admin')])
@@ -79,7 +87,6 @@ class UserInvitation(models.Model):
     used_at = models.DateTimeField(null=True, blank=True)
     invited_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='send_invitations')
 
-
     class Meta:
         indexes = [
             models.Index(fields=["expires_at", "is_used"]),
@@ -88,11 +95,14 @@ class UserInvitation(models.Model):
     def is_expired(self):
         return timezone.now() > self.expires_at
 
+    def is_blocked(self):
+        return self.failed_attempts >= 5
+
     def __str__(self):
         return f"{self.email} ({self.role})"
-    
-    def is_blocked(self):
-        return self.failed_attempts>=5
+
+
+# -------------------- Academic Structure --------------------
 
 class Faculty(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -102,6 +112,7 @@ class Faculty(models.Model):
     def __str__(self):
         return f"{self.code} - {self.name}"
 
+
 class Specialization(models.Model):
     name = models.CharField(max_length=100, unique=True)
     code = models.CharField(max_length=10, unique=True)
@@ -109,6 +120,30 @@ class Specialization(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.faculty.name})"
+
+
+class Series(models.Model):
+    name = models.CharField(max_length=10)
+    year = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(3)])
+    group_type = models.CharField(max_length=15, choices=[('b', 'Bachelor'), ('m', 'Master'), ('d', 'Doctorate')])
+    specialization = models.ForeignKey(Specialization, on_delete=models.CASCADE, related_name="series")
+
+    class Meta:
+        unique_together = ("name", "year", "group_type", "specialization")
+
+    def __str__(self):
+        return f"{self.name} - Y{self.year} - {self.specialization.name} ({self.group_type.upper()})"
+
+
+class Group(models.Model):
+    number = models.IntegerField(validators=[MinValueValidator(1000), MaxValueValidator(9999)], unique=True)
+    series = models.ForeignKey(Series, on_delete=models.CASCADE, related_name="groups")
+
+    def __str__(self):
+        return f"G{self.number} ({self.series})"
+
+
+# -------------------- Academic Models --------------------
 
 class Course(models.Model):
     name = models.CharField(max_length=100)
@@ -123,31 +158,26 @@ class Course(models.Model):
     def __str__(self):
         return f"{self.code} - {self.name}"
 
+
 class StudentProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='student_profile')
-    TYPE_CHOICES = (('b', 'Bachelor'), ('m', 'Master'), ('d', 'Doctorate'))
-    group_type = models.CharField(max_length=15, choices=TYPE_CHOICES, default='b')
+    group_type = models.CharField(max_length=15, choices=[('b', 'Bachelor'), ('m', 'Master'), ('d', 'Doctorate')], default='b')
     year = models.IntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(3)])
     specialization = models.ForeignKey(Specialization, on_delete=models.CASCADE, related_name="students")
-    group = models.IntegerField(validators=[MinValueValidator(1000), MaxValueValidator(9999)], default=1000)
-    series = models.CharField(max_length=10, null=True, blank=True)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name="students")
     subgroup = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(2)], default=1)
     start_year = models.IntegerField(default=datetime.date.today().year)
     courses = models.ManyToManyField(Course)
 
     def clean(self):
-        current = timezone.now().year
-        if self.start_year > current:
+        if self.start_year > timezone.now().year:
             raise ValidationError("Start year cannot be in the future.")
-        if self.group < 1000 or self.group > 9999:
-            raise ValidationError("Group must be between 1000 and 9999.")
         if self.subgroup not in [1, 2]:
             raise ValidationError("Subgroup must be 1 or 2.")
 
     def __str__(self):
-        return f"{self.user.email} - Y{self.year} - Gr{self.group}"
-    
-    
+        return f"{self.user.email} - Y{self.year} - G{self.group.number}"
+
 
 class ProfessorProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='professor_profile')
@@ -155,10 +185,16 @@ class ProfessorProfile(models.Model):
     teaches_seminar = models.BooleanField(default=False)
     specialization = models.ForeignKey(Specialization, on_delete=models.CASCADE, related_name="professors")
     courses = models.ManyToManyField(Course)
+    seminar_groups = models.ManyToManyField(Group, blank=True, related_name="seminar_professors")
+    lecture_series = models.ManyToManyField(Series, blank=True, related_name="lecture_professors")
 
     def clean(self):
-        if not self.teaches_lecture and not self.teaches_seminar:
+        if self.pk and not self.teaches_lecture and not self.teaches_seminar:
             raise ValidationError("Professor must teach either a lecture or a seminar (or both).")
+        if self.pk and self.teaches_seminar and not self.seminar_groups.exists():
+            raise ValidationError("Seminar professors must be assigned to at least one group.")
+        if self.pk and self.teaches_lecture and not self.lecture_series.exists():
+            raise ValidationError("Lecture professors must be assigned to at least one series.")
 
     def __str__(self):
         return self.user.email

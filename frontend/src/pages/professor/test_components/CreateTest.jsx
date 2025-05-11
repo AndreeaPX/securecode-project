@@ -61,7 +61,7 @@ export default function CreateTest({ editMode }) {
             params: {
               course: testRes.data.course,
               ordering: "-created_at",
-              limit: 20
+              limit: 5
             }
           });
   

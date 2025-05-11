@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..models.core import User, UserInvitation, ProfessorProfile, Course, Specialization, StudentProfile
+from ..models.core import User, UserInvitation, ProfessorProfile, Course, Specialization, StudentProfile, Series, Group
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.hashers import check_password
 from django.utils import timezone
@@ -72,30 +72,26 @@ class SpecializationSerializer(serializers.ModelSerializer):
         model = Specialization
         fields = ["name","code"]
 
-
-class ProfessorProfileSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(source = "user.email")
-    start_date = serializers.DateField(source = "user.start_date")
-
+class SeriesSerializer(serializers.ModelSerializer):
     specialization = SpecializationSerializer()
-    courses = CourseSerializer(many = True)
 
     class Meta:
-        model = ProfessorProfile
-        fields = [
-            "email",
-            "start_date",           
-            "specialization",
-            "courses",
-            "teaches_lecture",
-            "teaches_seminar"
-        ]
+        model = Series
+        fields = ["id", "name", "year", "group_type", "specialization"]
+
+class GroupSerializer(serializers.ModelSerializer):
+    series = SeriesSerializer()
+
+    class Meta:
+        model = Group
+        fields = ["id", "number", "series"]
 
 class StudentProfileSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(source = "user.email")
-    start_date = serializers.DateField(source = "user.start_date")
+    email = serializers.EmailField(source="user.email")
+    start_date = serializers.DateField(source="user.start_date")
     specialization = SpecializationSerializer()
-    courses = CourseSerializer(many = True)
+    courses = CourseSerializer(many=True)
+    group = GroupSerializer()
 
     class Meta:
         model = StudentProfile
@@ -106,7 +102,28 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "courses",
             "group_type",
             "group",
-            "series",
             "subgroup",
             "year"
+        ]
+
+class ProfessorProfileSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source="user.email")
+    start_date = serializers.DateField(source="user.start_date")
+
+    specialization = SpecializationSerializer()
+    courses = CourseSerializer(many=True)
+    seminar_groups = GroupSerializer(many=True)
+    lecture_series = SeriesSerializer(many=True)
+
+    class Meta:
+        model = ProfessorProfile
+        fields = [
+            "email",
+            "start_date",
+            "specialization",
+            "courses",
+            "teaches_lecture",
+            "teaches_seminar",
+            "seminar_groups",
+            "lecture_series"
         ]

@@ -1,0 +1,77 @@
+.student-dashboard-wrapper {
+  padding: 4rem 2rem;
+  padding-left: 16rem;
+  background-color: transparent;
+  min-height: 100vh;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.student-dashboard-title {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 2.5rem;
+  color: #e5e5e5;
+  text-align: center;
+}
+
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.course-card {
+  background: linear-gradient(145deg, #6a0dad, #a78bfa);
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  transition: transform 0.2s ease;
+  color: white;
+}
+
+.course-card:hover {
+  transform: translateY(-5px);
+}
+
+.course-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.course-details {
+  font-size: 0.95rem;
+  color: #e5e5e5;
+}
+
+.filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.filters input,
+.filters select {
+  background-color: #1f1c2c;
+  color: white;
+  border: 1px solid #6a0dad;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  min-width: 160px;
+  transition: border 0.3s;
+}
+
+.filters input:focus,
+.filters select:focus {
+  outline: none;
+  border-color: #a78bfa;
+}

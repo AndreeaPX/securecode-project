@@ -11,7 +11,7 @@ import CreateQuestion from './pages/professor/question_components/CreateQuestion
 import QuestionView from './pages/professor/question_components/QuestionView';
 import Tests from "./pages/professor/Tests";
 import CreateTest from "./pages/professor/test_components/CreateTest";
-
+import StudentDashboard from "./pages/student/StudentDashBoard";
 import { useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -44,6 +44,7 @@ function App() {
           <Route path="/tests" element={<Tests />} />
           <Route path="/tests/create" element={<CreateTest />} />
           <Route path="/tests/edit/:testId" element={<CreateTest editMode={true} />} />
+          <Route path="/dashboard-student" element={<StudentDashboard />} />
         </Route>
 
         {/* Public Routes */}

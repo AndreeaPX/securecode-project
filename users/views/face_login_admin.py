@@ -12,7 +12,8 @@ import pickle
 from rest_framework.decorators import api_view, throttle_classes, permission_classes
 from users.throttles import SafeLoginThrottle
 from rest_framework.permissions import IsAuthenticated
-
+from .face_validators import validate_face_image
+import cv2
 
 @api_view(['GET','POST'])
 @throttle_classes([SafeLoginThrottle])
@@ -45,14 +46,15 @@ def face_login_admin(request):
             file_name = f"{user.email.replace('@', '_at_')}_face.{ext}"
             img_bytes = base64.b64decode(imgstr)
 
-            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{ext}") as tmp:
-                tmp.write(img_bytes)
-                tmp_path = tmp.name
 
-            uploaded_image = face_recognition.load_image_file(tmp_path)
-            uploaded_encodings = face_recognition.face_encodings(uploaded_image)
+            is_valid, result = validate_face_image(img_bytes=img_bytes)
+            if not is_valid:
+                return JsonResponse({"error": result}, status=400)
+            
+            img_cv2 = result
+            img_rgb = cv2.cvtColor(img_cv2, cv2.COLOR_BGR2RGB)
 
-            os.remove(tmp_path)
+            uploaded_encodings = face_recognition.face_encodings(img_rgb)
 
             if len(uploaded_encodings) != 1:
                 return JsonResponse({"error": "Image must contain exactly one face."}, status=400)
@@ -102,17 +104,16 @@ def face_login_react(request):
             return JsonResponse({"error": "Too many failed attempts."}, status=429)
 
         format, imgstr = face_image_data.split(";base64,")
-        ext = format.split("/")[-1]
         img_bytes = base64.b64decode(imgstr)
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{ext}") as tmp:
-            tmp.write(img_bytes)
-            tmp_path = tmp.name
+        is_valid, result = validate_face_image(img_bytes)
+        if not is_valid:
+            return JsonResponse({"error": result}, status=400)
 
-        uploaded_image = face_recognition.load_image_file(tmp_path)
-        uploaded_encodings = face_recognition.face_encodings(uploaded_image)
-
-        os.remove(tmp_path)
+        
+        img_cv2 = result
+        img_rgb = cv2.cvtColor(img_cv2, cv2.COLOR_BGR2RGB)
+        uploaded_encodings = face_recognition.face_encodings(img_rgb)
 
         if len(uploaded_encodings) != 1:
             return JsonResponse({"error": "Exactly one face must be present."}, status=400)
@@ -120,7 +121,6 @@ def face_login_react(request):
         uploaded_encoding = uploaded_encodings[0]
 
         if user.face_encoding is None:
-            user.face_image.save(f"{user.email.replace('@', '_')}_face.{ext}", ContentFile(img_bytes))
             user.face_encoding = pickle.dumps(uploaded_encoding)
             user.failed_face_attempts = 0
             user.save()

@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views.questions_view import QuestionViewApi, CoursesAPIView
-from .views.tests_view import TestViewSet, TestQuestionViewSet, TestQuestionsByTestIdAPIView
+from .views.tests_view import TestViewSet, TestQuestionViewSet, TestQuestionsByTestIdAPIView, TestAssignmentViewSet
 
 from .views.auth_views import (
     UserLoginAPIView,
@@ -26,6 +26,7 @@ router = DefaultRouter()
 router.register(r'questions', QuestionViewApi, basename='questions')
 router.register(r'tests',TestViewSet, basename='tests')
 router.register(r'test-questions', TestQuestionViewSet, basename='test-questions')
+router.register(r"test-assignments", TestAssignmentViewSet, basename="test-assignment")
 
 urlpatterns = [
     path("login/", UserLoginAPIView.as_view(), name="login-user"),

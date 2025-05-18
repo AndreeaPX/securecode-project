@@ -4,7 +4,7 @@ import axiosInstance from "../../../api/axios";
 import { useAuth } from "../../../components/AuthProvider";
 import "../../../styles/CreateTest.css";
 
-export default function CreateTest({ editMode }) {
+export default function CreateTest({ editMode, viewMode }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { testId } = useParams();
@@ -15,6 +15,8 @@ export default function CreateTest({ editMode }) {
   const [currentQuestions, setCurrentQuestions] = useState([]);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
   const [initialQuestionsIds, setInitialQuestionsIds] = useState([]);
+  const [availableSeries, setAvailableSeries] = useState([]);
+  const [availableGroups, setAvailableGroups] = useState([]);
 
   const [testData, setTestData] = useState({
     name: "",
@@ -31,66 +33,84 @@ export default function CreateTest({ editMode }) {
     extra_points:10,
     target_series: "",
     target_group: "",
-    target_subgroup: ""
+    target_subgroup: "",
+    is_submitted: false 
   });
+  const isSubmitted = testData.is_submitted === true;
+  const isReadOnly = viewMode || isSubmitted;
+  const [submitting, setSubmitting] = useState(false);
+useEffect(() => {
+  if (!user) return;
 
-  useEffect(() => {
-    if (!user) return;
-  
-    const init = async () => {
-      try {
-        const res = await axiosInstance.get("/courses/");
-        setCourses(res.data);
-  
-        if (editMode && testId) {
-          const testRes = await axiosInstance.get(`/tests/${testId}/`);
-          setTestData(testRes.data);
+  const init = async () => {
+    try {
+      const [coursesRes, profileRes] = await Promise.all([
+        axiosInstance.get("/courses/"),
+        axiosInstance.get("/settings/professor/")
+      ]);
 
-          const testQuestionsRes = await axiosInstance.get(`/tests/${testId}/questions/`);
-          const testQuestions = testQuestionsRes.data
-            .map((tq) => tq.question)
-            .filter((q) => q && String(q.course) === String(testRes.data.course));
-  
-          const testQuestionIds = testQuestions.map((q) => q.id);
-  
-          setCurrentQuestions(testQuestions);
-          setSelectedQuestionIds(testQuestionIds);
-          setInitialQuestionsIds(testQuestionIds);
+      setCourses(coursesRes.data);
+      setAvailableSeries(profileRes.data.lecture_series || []);
+      setAvailableGroups(profileRes.data.seminar_groups || []);
 
-          const suggestedRes = await axiosInstance.get("/questions/", {
-            params: {
-              course: testRes.data.course,
-              ordering: "-created_at",
-              limit: 5
-            }
-          });
-  
-          const suggested = suggestedRes.data.filter(
-            (q) => !testQuestionIds.includes(q.id)
-          );
-          setSuggestedQuestions(suggested);
-        } else {
-          const draft = localStorage.getItem("testDraft");
-          if (draft) {
-            const parsed = JSON.parse(draft);
-            if (parsed.name && parsed.course) {
-              setTestData(parsed);
-            } else {
-              localStorage.removeItem("testDraft");
-            }
+      if ((viewMode||editMode) && testId) {
+        const testRes = await axiosInstance.get(`/tests/${testId}/`);
+        const testDataRaw = testRes.data;
+
+        setTestData({
+          ...testDataRaw,
+          target_series: testDataRaw.target_series || "",
+          target_group: testDataRaw.target_group || "",
+          is_submitted : testDataRaw.is_submitted || false
+        });
+
+        
+        const testQuestionsRes = await axiosInstance.get(`/tests/${testId}/questions/`);
+        const testQuestions = testQuestionsRes.data
+          .map((tq) => tq.question)
+          .filter((q) => q && String(q.course) === String(testDataRaw.course));
+
+        const testQuestionIds = testQuestions.map((q) => q.id);
+
+        setCurrentQuestions(testQuestions);
+        setSelectedQuestionIds(testQuestionIds);
+        setInitialQuestionsIds(testQuestionIds);
+
+        const suggestedRes = await axiosInstance.get("/questions/", {
+          params: {
+            course: testDataRaw.course,
+            ordering: "-created_at",
+            limit: 5
+          }
+        });
+
+        const suggested = suggestedRes.data.filter(
+          (q) => !testQuestionIds.includes(q.id)
+        );
+        setSuggestedQuestions(suggested);
+      } else {
+        const draft = localStorage.getItem("testDraft");
+        if (draft) {
+          const parsed = JSON.parse(draft);
+          if (parsed.name && parsed.course) {
+            setTestData(parsed);
+          } else {
+            localStorage.removeItem("testDraft");
           }
         }
-      } catch (err) {
-        console.error("Failed to load data:", err);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (err) {
+      console.error("Failed to load data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  init();
+}, [user, editMode, testId]);
+
   
-    init();
-  }, [user, editMode, testId]);
-  
-  
+
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -139,6 +159,11 @@ export default function CreateTest({ editMode }) {
       alert("Only training tests can have more than one attempt.");
       return;
     }
+
+    if (testData.target_series && testData.target_group) {
+       return alert("Please select either a series OR a group, not both.");
+    }
+
 
     try {
       const payload = { ...testData };
@@ -234,9 +259,10 @@ export default function CreateTest({ editMode }) {
   if (loading) return <p>Loading test form...</p>;
 
   return (
-    <div className="questions-page">
-      <h2>{editMode ? "Edit Test" : "Create New Test"}</h2>
-      <form onSubmit={handleSubmit} className="create-question-form">
+  <div className="questions-page">
+    <h2>{editMode ? "Edit Test" : "Create New Test"}</h2>
+    <form onSubmit={handleSubmit} className="create-question-form">
+      <fieldset disabled={isReadOnly} className="fieldset-wrapper">
         <input
           type="text"
           name="name"
@@ -283,8 +309,8 @@ export default function CreateTest({ editMode }) {
         />
 
         <input
-          type = "number"
-          name = "maxim_points"
+          type="number"
+          name="maxim_points"
           placeholder="Total Points"
           value={testData.maxim_points}
           onChange={handleChange}
@@ -309,9 +335,8 @@ export default function CreateTest({ editMode }) {
             onChange={handleChange}
             min={1}
           />
-
-        ): (
-          <p style={{fontSize: "0.9rem"}}>Only 1 attempt is allowed for exams and official tests</p>
+        ) : (
+          <p className="info-text">Only 1 attempt is allowed for exams and official tests</p>
         )}
 
         <div className="checkbox-group">
@@ -344,40 +369,71 @@ export default function CreateTest({ editMode }) {
           </label>
         </div>
 
-        <input type="text" name="target_series" placeholder="Series" value={testData.target_series || ""} onChange={handleChange} />
-        <input type="number" name="target_group" placeholder="Group" value={testData.target_group || ""} onChange={handleChange} />
-        <input type="number" name="target_subgroup" placeholder="Subgroup" value={testData.target_subgroup || ""} onChange={handleChange} />
+        <select
+          name="target_series"
+          value={testData.target_series?.id ||testData.target_series || ""}
+          onChange={handleChange}
+        >
+          <option value="">Select Series</option>
+          {availableSeries.map((series) => (
+            <option key={series.id} value={series.id}>
+              {series.name} - Y{series.year} ({series.specialization.name})
+            </option>
+          ))}
+        </select>
+
+        <select
+          name="target_group"
+          value={testData.target_group?.id || testData.target_group || ""}
+          onChange={handleChange}
+        >
+          <option value="">Select Group</option>
+          {availableGroups.map((group) => (
+            <option key={group.id} value={group.id}>
+              G{group.number} ({group.series.name} - Y{group.series.year})
+            </option>
+          ))}
+        </select>
+
+        <input
+          type="number"
+          name="target_subgroup"
+          placeholder="Subgroup"
+          value={testData.target_subgroup?.id || testData.target_subgroup || ""}
+          onChange={handleChange}
+        />
+
+        
 
         {currentQuestions.length > 0 && (
-        <div className="options-section">
+          <div className="options-section">
             <h4>Current Questions</h4>
             {currentQuestions
-            .filter((q) => selectedQuestionIds.includes(q.id))
-            .map((q) => (
-                <label key={`${q.id}-current`} style={{ display: "block", marginBottom: "0.5rem" }}>
-                <input
+              .filter((q) => selectedQuestionIds.includes(q.id))
+              .map((q) => (
+                <label key={`${q.id}-current`} className="question-label">
+                  <input
                     type="checkbox"
                     checked={selectedQuestionIds.includes(q.id)}
                     onChange={(e) => {
-                    const id = q.id;
-                    const isChecked = e.target.checked;
-                    setSelectedQuestionIds((prev) =>
+                      const id = q.id;
+                      const isChecked = e.target.checked;
+                      setSelectedQuestionIds((prev) =>
                         isChecked ? [...prev, id] : prev.filter((qid) => qid !== id)
-                    );
+                      );
                     }}
-                />
-                {(q.text || "Untitled").slice(0, 100)}...
+                  />
+                  {(q.text || "Untitled").slice(0, 100)}...
                 </label>
-            ))}
-        </div>
+              ))}
+          </div>
         )}
 
-
-        {suggestedQuestions.length > 0 && (
+        {!viewMode && suggestedQuestions.length > 0 && (
           <div className="options-section">
             <h4>Suggested Questions</h4>
             {suggestedQuestions.map((q) => (
-              <label key={`${q.id}-suggested`} style={{ display: "block", marginBottom: "0.5rem" }}>
+              <label key={`${q.id}-suggested`} className="question-label">
                 <input
                   type="checkbox"
                   value={q.id}
@@ -394,27 +450,50 @@ export default function CreateTest({ editMode }) {
                 {(q.text || "Untitled").slice(0, 100)}...
               </label>
             ))}
+            
             <button
               type="button"
+              className="submit-test-button"
               onClick={handleSeeMoreQuestions}
-              style={{
-                marginTop: "1rem",
-                backgroundColor: "#6a0dad",
-                color: "white",
-                border: "none",
-                padding: "0.5rem 1rem",
-                borderRadius: "8px",
-                fontWeight: "600",
-                cursor: "pointer",
-              }}
             >
               See More Questions
             </button>
           </div>
         )}
 
-        <button type="submit">{editMode ? "Update Test" : "Create Test"}</button>
-      </form>
-    </div>
-  );
+        </fieldset>
+        {!viewMode && (
+          <button type="submit" disabled={editMode && isSubmitted}>
+            {editMode ? "Update Test" : "Create Test"}
+          </button>
+        )}
+
+      {editMode && !viewMode && !isSubmitted && (
+        <button
+          type="button"
+          className="submit-test-button"
+          disabled={submitting}
+          onClick={async () => {
+            const confirmSubmit = window.confirm("Are you sure?");
+            if (!confirmSubmit) return;
+            setSubmitting(true);
+            try {
+              await axiosInstance.post(`/tests/${testId}/submit/`);
+              alert("Test submitted to students!");
+              navigate("/tests");
+            } catch (err) {
+              console.error("Submit failed:", err);
+              alert("Submit failed. Try again.");
+            } finally {
+              setSubmitting(false);
+            }
+          }}
+        >
+          Submit to Students
+        </button>
+      )}
+    </form>
+    
+  </div>
+);
 }

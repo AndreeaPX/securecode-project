@@ -5,15 +5,20 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 100vb;
+  min-height: 100vh; /* fixat aici */
   margin: 2rem auto;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Segoe UI', sans-serif; /* fix fallback */
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  font-family: 'Segoe UI', sans-serif;
 }
 
+.fieldset-wrapper {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: contents; /* super important! */
+}
 
 
 /* Page heading */
@@ -120,4 +125,19 @@
   font-size: 0.9rem;
   color: #555;
   margin-top: -0.5rem;
+}
+
+.submit-test-button {
+  background-color: #28a745;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.submit-test-button:hover {
+  background-color: #218838;
 }

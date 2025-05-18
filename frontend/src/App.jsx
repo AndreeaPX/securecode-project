@@ -12,6 +12,8 @@ import QuestionView from './pages/professor/question_components/QuestionView';
 import Tests from "./pages/professor/Tests";
 import CreateTest from "./pages/professor/test_components/CreateTest";
 import StudentDashboard from "./pages/student/StudentDashBoard";
+import StudentCourseTest from "./pages/student/components/StudentCourseTest";
+import TestPage from "./pages/student/components/TestPage";
 import { useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -42,10 +44,22 @@ function App() {
           <Route path="/questions/edit/:questionId" element={<CreateQuestion/>}/>
           <Route path="/questions/view/:questionId" element={<QuestionView readonly={true} />} />
           <Route path="/tests" element={<Tests />} />
-          <Route path="/tests/create" element={<CreateTest />} />
-          <Route path="/tests/edit/:testId" element={<CreateTest editMode={true} />} />
+          <Route path="/tests/create" element={<CreateTest editMode={false} viewMode={false}/>} />
+          <Route path="/tests/edit/:testId" element={<CreateTest editMode={true} viewMode={false}/>} />
+          <Route path="/tests/view/:testId" element={<CreateTest editMode={false} viewMode={true} />} />
           <Route path="/dashboard-student" element={<StudentDashboard />} />
+          <Route path="/student/tests/:courseId" element={<StudentCourseTest />} />
         </Route>
+
+
+        <Route
+          path="/tests/start/:id"
+          element={
+            <ProtectedRoute>
+              <TestPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />

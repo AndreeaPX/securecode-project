@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axiosInstance from "../../api/axios";
 import { useAuth } from "../../components/AuthProvider";
 import "../../styles/StudentDashboard.css";
+import {useNavigate} from "react-router-dom";
 
 
 const bgClasses = ["bg-purple1", "bg-purple2", "bg-purple3", "bg-purple4"];
@@ -18,6 +19,7 @@ export default function StudentDashboard() {
   const [search, setSearch] = useState("");
   const [year, setYear] = useState("");
   const [semester, setSemester] = useState("");
+  const navigate = useNavigate();
   
   useEffect(() => {
     const fetchCourses = async () => {
@@ -56,7 +58,9 @@ export default function StudentDashboard() {
   <h2 className="student-dashboard-title">My Courses</h2>
   <div className="course-grid">
     {courses.map((course) => (
-      <div key={course.id} className="course-card">
+      <div key={course.id} className={`course-card ${course.style}`}
+      onClick={() => navigate(`/student/tests/${course.id}`)}
+      style={{cursor:"pointer"}}>
         <div className="course-name">{course.name}</div>
         <div className="course-details">Year {course.year} – Semester {course.semester}</div>
       </div>

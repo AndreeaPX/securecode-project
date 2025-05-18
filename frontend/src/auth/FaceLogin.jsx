@@ -12,8 +12,6 @@ export default function FaceLogin() {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
 
-
-
   useEffect(() => {
 
     let activeStream = null;
@@ -22,8 +20,6 @@ export default function FaceLogin() {
       navigate("/login");
       return;
     }
-
-    
 
     navigator.mediaDevices.getUserMedia({ video: true })
       .then((stream) => {

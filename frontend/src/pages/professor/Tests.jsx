@@ -75,8 +75,14 @@ export default function Tests() {
                 <td>{test.deadline ? test.deadline.split("T")[0] : "-"}</td>
                 <td>{test.duration_minutes} min</td>
                 <td>
-                  <button onClick={() => navigate(`/tests/edit/${test.id}`)}>Edit</button>
-                  <button onClick={() => handleDelete(test.id)}>Delete</button>
+                  {test.is_submitted ? (
+                    <button onClick={() => navigate(`/tests/view/${test.id}`)}>Open</button>
+                  ) : (
+                    <>
+                      <button onClick={() => navigate(`/tests/edit/${test.id}`)}>Edit</button>
+                      <button onClick={() => handleDelete(test.id)}>Delete</button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}

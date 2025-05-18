@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions, serializers
-from users.models.tests import Test, TestQuestion
-from users.serializers.tests import TestSerializer, TestQuestionSerializer, TestQuestionDetailedSerializer
+from users.models.tests import Test, TestQuestion, TestAssignment
+from users.serializers.tests import TestSerializer, TestQuestionSerializer, TestQuestionDetailedSerializer, TestAssignmentSerializer
 from rest_framework.exceptions import PermissionDenied, NotFound
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
@@ -22,13 +22,72 @@ class TestViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.role != "professor":
             raise PermissionDenied("Only professors can create tests.")
+        
+        profile = getattr(user, "professor_profile", None)
+        if not profile:
+            raise PermissionDenied("No professor profile.")
+        
+        course = serializer.validated_data.get("course")
+        if course not in profile.courses.all():
+            raise PermissionDenied("You are not assigned to this course.")
+        
+        target_series = serializer.validated_data.get("target_series")
+        target_group = serializer.validated_data.get("target_group")
+
+        
+        if target_series and profile.teaches_lecture:
+            if target_series not in profile.lecture_series.all():
+                raise PermissionDenied("You're not assigned to this series.")
+
+        if target_group and profile.teaches_seminar:
+            if target_group not in profile.seminar_groups.all():
+                raise PermissionDenied("You're not assigned to this group.")
+
         serializer.save(professor = user)
+
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        if user.role != "professor":
+            raise PermissionDenied("Only professors can update tests.")
+        
+        profile = getattr(user, "professor_profile", None)
+        if not profile:
+            raise PermissionDenied("No professor profile.")
+        
+        course = serializer.validated_data.get("course", serializer.instance.course)
+        if course not in profile.courses.all():
+            raise PermissionDenied("You are not assigned to this course.")
+
+        target_series = serializer.validated_data.get("target_series", serializer.instance.target_series)
+        target_group = serializer.validated_data.get("target_group", serializer.instance.target_group)
+
+        if target_series and profile.teaches_lecture:
+            if target_series not in profile.lecture_series.all():
+                raise PermissionDenied("You're not assigned to this series.")
+
+        if target_group and profile.teaches_seminar:
+            if target_group not in profile.seminar_groups.all():
+                raise PermissionDenied("You're not assigned to this group.")
+
+        serializer.save()
 
     def get_object(self):
         obj = super().get_object()
         if obj.professor != self.request.user:
             raise PermissionDenied("You don't have permission to modify this test.")
         return obj
+    
+    @action(detail=True, methods=["post"])
+    def submit(self, request, pk = None):
+        test = self.get_object()
+        if test.is_submitted:
+            return Response({"detail": "Test already submitted."}, status=400)
+        created = test.assign()
+        test.is_submitted = True
+        test.save()
+
+        return Response({"detail": f"Assigned to {created} students."})
 
 class TestQuestionViewSet(viewsets.ModelViewSet):
     serializer_class = TestQuestionSerializer
@@ -96,3 +155,17 @@ class TestQuestionsByTestIdAPIView(APIView):
         test_questions = TestQuestion.objects.filter(test=test).select_related('question').prefetch_related('question__options')
         serializer = TestQuestionDetailedSerializer(test_questions, many=True)
         return Response(serializer.data)
+    
+class TestAssignmentViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = TestAssignmentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.role == "professor":
+            return TestAssignment.objects.filter(test__professor=user)
+        elif user.role == "student":
+            return TestAssignment.objects.filter(student=user)
+        else:
+            return TestAssignment.objects.none()

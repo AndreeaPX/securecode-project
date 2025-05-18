@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from users.models.core import User, Course, StudentProfile
+from users.models.core import User, Course, StudentProfile, Series, Group
 from users.models.questions import Question, AnswerOption
 from django.core.exceptions import ValidationError
 
@@ -24,10 +24,10 @@ class Test(models.Model):
     has_ai_assistent = models.BooleanField(default=False)
     maxim_points = models.IntegerField(default=90, null=False)
     extra_points = models.IntegerField(default=10, null=False)
-
+    is_submitted = models.BooleanField(default=False) 
     created_at = models.DateTimeField(auto_now_add=True)
-    target_series = models.CharField(max_length=10, null=True, blank=True)
-    target_group = models.IntegerField(null=True, blank=True)
+    target_series = models.ForeignKey(Series, null=True, blank=True, on_delete=models.SET_NULL, related_name="tests_for_series")
+    target_group = models.ForeignKey(Group, null=True, blank=True, on_delete=models.SET_NULL, related_name="tests_for_group")
     target_subgroup = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
@@ -40,24 +40,36 @@ class Test(models.Model):
             raise ValidationError("Test duration must be > 0")
         if self.type != 'training' and self.allowed_attempts not in [1, None]:
             raise ValidationError("Only training tests can have more than one attempt.")
+        if self.target_series and self.target_group:
+            raise ValidationError("Choose either a target series or a target group, not both.")
+        if not self.target_series and not self.target_group:
+            raise ValidationError("Test must target at least a series or a group.")
         
     def assign(self):
         filters = {}
         if self.target_series:
-            filters["series"] = self.target_series
+             filters["group__series"] = self.target_series
+            
         if self.target_group:
             filters["group"] = self.target_group
+
         if self.target_subgroup:
             filters["subgroup"] = self.target_subgroup
+
+        if not filters:
+            raise ValidationError("Test must target at least a series or a group.")
+        
         profiles = StudentProfile.objects.filter(**filters)
+
         created = 0
         for profile in profiles:
             _, was_created = TestAssignment.objects.get_or_create(
-                test = self,
-                student = profile.user
+                test=self,
+                student=profile.user
             )
             if was_created:
                 created += 1
+
         return created
 
 class TestQuestion(models.Model):

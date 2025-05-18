@@ -1,0 +1,83 @@
+.test-page-container {
+  padding: 2rem;
+  padding-left: 20rem;
+  color: #ffffff;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.test-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.test-card {
+  background: linear-gradient(135deg, #2e234f, #3d2e66);
+  border-radius: 18px;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.test-card:hover {
+  transform: translateY(-5px);
+}
+
+.test-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.test-header h3 {
+  font-size: 1.5rem;
+  color: #e5dbff;
+  margin: 0;
+}
+
+.test-header span {
+  font-size: 0.95rem;
+  color: #bfaeff;
+  background: #5c3c90;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.test-details p {
+  margin: 0.4rem 0;
+  font-size: 0.95rem;
+  color: #d8c9ff;
+}
+
+.test-options {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #a98fff;
+}
+
+.test-options span {
+  background: #493474;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.test-card button {
+  margin-top: 1.2rem;
+  background-color: #a768f0;
+  border: none;
+  color: white;
+  padding: 0.7rem 1.4rem;
+  border-radius: 10px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.test-card button:hover {
+  background-color: #8b4edd;
+}

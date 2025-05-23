@@ -78,3 +78,35 @@ class QuestionSerializer(serializers.ModelSerializer):
             for option_data in options_data:
                 AnswerOption.objects.create(question=instance, **option_data)
         return instance
+
+class StudentAttachmentSerializer(serializers.ModelSerializer):
+    file_type = serializers.SerializerMethodField()
+    file_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = QuestionAttachment
+        fields = ["id","file","file_type","file_name"]
+        
+    def get_file_type(self, obj):
+        return obj.file_type()
+    
+    def get_file_name(self,obj):
+        return obj.file.name.split("/")[-1]
+    
+
+class StudentAnswerOptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AnswerOption
+        fields = ["id", "text"]  
+
+class StudentQuestionSerializer(serializers.ModelSerializer):
+    attachments = StudentAttachmentSerializer(many=True, read_only=True)
+    options = StudentAnswerOptionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Question
+        fields = [
+            "id", "text", "type", "points",
+            "starter_code", "language", "expected_output",
+            "attachments", "options"
+        ]

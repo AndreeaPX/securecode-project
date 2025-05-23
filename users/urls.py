@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views.questions_view import QuestionViewApi, CoursesAPIView
-from .views.tests_view import TestViewSet, TestQuestionViewSet, TestQuestionsByTestIdAPIView, TestAssignmentViewSet
+from .views.tests_view import TestViewSet, TestQuestionViewSet, TestQuestionsByTestIdAPIView, TestAssignmentViewSet, AssignedTestQuestionsAPIView
 
 from .views.auth_views import (
     UserLoginAPIView,
@@ -19,7 +19,7 @@ from .views.attachments_view import QuestionAttachmentAPIView
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views.face_login_admin import face_login_react
-from .views.student_view import StudentCoursesAPIView
+from .views.student_view import StudentCoursesAPIView, StudentActiveTestsGroupedByCourseAPIView
 
 
 router = DefaultRouter()
@@ -40,6 +40,8 @@ urlpatterns = [
     path('tests/<int:test_id>/questions/', TestQuestionsByTestIdAPIView.as_view(), name='test-questions-by-test'),
     path("face-login/", face_login_react, name="face-login-react"),
     path("dashboard/student-courses/", StudentCoursesAPIView.as_view(), name="student-dashboard-courses"),
+    path("student/tests-by-course/", StudentActiveTestsGroupedByCourseAPIView.as_view(), name="student-tests-by-course"),
+    path("test-assignments/<int:assignment_id>/questions/", AssignedTestQuestionsAPIView.as_view(), name="assigned-test-questions"),
     path('', include(router.urls)),
 ]
 

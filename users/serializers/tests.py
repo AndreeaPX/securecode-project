@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from users.models.tests import Test, TestQuestion, TestAssignment
 from users.serializers.questions import QuestionSerializer
-from users.models.core import Series, Group
+from users.models.core import Series, Group, Course
+from django.utils import timezone
 
 
 class TestSerializer(serializers.ModelSerializer):
@@ -59,7 +60,7 @@ class TestAssignmentSerializer(serializers.ModelSerializer):
     student_email = serializers.EmailField(source = 'student.email', read_only = True)
     test_name = serializers.CharField(source="test.name", read_only=True)
     course_name = serializers.CharField(source="test.course.name", read_only=True)
-
+    test = TestSerializer(read_only=True) 
     
     class Meta:
         model = TestAssignment
@@ -70,3 +71,22 @@ class TestAssignmentSerializer(serializers.ModelSerializer):
             "ai_score", "manual_score", "reviewed_by"
         ]
         read_only_fields = ["id", "student_email", "test_name", "course_name"]
+
+
+
+class CourseWithTestsSerializer(serializers.ModelSerializer):
+    tests = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Course
+        fields = ['id', 'name', 'tests']
+
+    def get_tests(self, course):
+        student = self.context['request'].user
+
+        assignments = TestAssignment.objects.filter(
+            student=student,
+            test__course=course
+        ).select_related('test', 'test__course')
+
+        return TestAssignmentSerializer(assignments, many=True).data

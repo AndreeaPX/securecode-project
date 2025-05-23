@@ -71,20 +71,20 @@ class CustomAdminUser(UserAdmin):
             if obj.role == "admin":
                 login_url = "https://localhost:8000/admin/"
             try:
-                # send_mail(
-                #     subject="You're invited to SecureCode",
-                #     message=(
-                #         f"Hello,\n\n"
-                #         f"You’ve been added to SecureCode as a {obj.role}.\n"
-                #         f"Use this one-time code: {otp_token}\n"
-                #         f"Login here: {login_url}\n\n"
-                #         f"This code expires in 24 hours.\n\n"
-                #         f"– SecureCode Team"
-                # ),
-                # from_email=settings.DEFAULT_FROM_EMAIL,
-                # recipient_list=[obj.email],
-                # fail_silently=False,
-                # )
+                send_mail(
+                    subject="You're invited to SecureCode",
+                    message=(
+                        f"Hello,\n\n"
+                        f"You’ve been added to SecureCode as a {obj.role}.\n"
+                        f"Use this one-time code: {otp_token}\n"
+                        f"Login here: {login_url}\n\n"
+                        f"This code expires in 24 hours.\n\n"
+                        f"– SecureCode Team"
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[obj.email],
+                fail_silently=False,
+                )
                 print(otp_token)
                 print(obj.email)
             except Exception as e :

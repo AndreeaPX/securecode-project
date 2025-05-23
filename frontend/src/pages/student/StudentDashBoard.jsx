@@ -59,7 +59,7 @@ export default function StudentDashboard() {
   <div className="course-grid">
     {courses.map((course) => (
       <div key={course.id} className={`course-card ${course.style}`}
-      onClick={() => navigate(`/student/tests/${course.id}`)}
+      onClick={() => navigate(`/student/courses/${course.id}/tests`)}
       style={{cursor:"pointer"}}>
         <div className="course-name">{course.name}</div>
         <div className="course-details">Year {course.year} – Semester {course.semester}</div>

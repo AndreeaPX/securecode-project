@@ -17,6 +17,7 @@ import TestPage from "./pages/student/components/TestPage";
 import { useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+
 function App() {
   useEffect(() => {
     fetch("https://localhost:8000/csrf/", {
@@ -48,18 +49,10 @@ function App() {
           <Route path="/tests/edit/:testId" element={<CreateTest editMode={true} viewMode={false}/>} />
           <Route path="/tests/view/:testId" element={<CreateTest editMode={false} viewMode={true} />} />
           <Route path="/dashboard-student" element={<StudentDashboard />} />
-          <Route path="/student/tests/:courseId" element={<StudentCourseTest />} />
+          <Route path="/student/courses/:courseId/tests" element={<StudentCourseTest />} />
         </Route>
 
-
-        <Route
-          path="/tests/start/:id"
-          element={
-            <ProtectedRoute>
-              <TestPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/tests/start/:assignmentId" element={<ProtectedRoute><TestPage /></ProtectedRoute>} />
 
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />

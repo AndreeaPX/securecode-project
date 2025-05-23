@@ -9,7 +9,7 @@ export default function FaceLogin() {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, setUser, logout } = useAuth();
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -67,19 +67,26 @@ export default function FaceLogin() {
         email: user.email,
         face_image: faceData,
       });
-
       if (res.data.success) {
         setMessage("Face authenticated.");
         stopCamera();
         videoRef.current.srcObject = null;
         window.location.href = user.first_login ? "/change-password" : "/";
       } else {
-        setMessage("Face authentication failed.");
+        setMessage("Face authentication failed. Please try again.");
+        stopCamera();
+        logout(true);
       }
     } catch (err) {
       console.error("Face login error:", err.response?.data || err.message);
-      setMessage("Server error during face verification.");
-    }
+        const status = err?.response?.status;
+        if ([401, 403, 429].includes(status)) {
+          setMessage("Authentication error: " + (err.response?.data?.error || "Access denied"));
+          logout(true);
+          return;
+        }
+        setMessage("Server error during face verification.");
+      }
   };
 
   return (

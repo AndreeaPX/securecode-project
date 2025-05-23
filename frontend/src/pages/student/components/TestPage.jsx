@@ -1,22 +1,81 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import axiosInstance from "../../../api/axios";
 import useProctoring from "../hooks/useProctoring";
 import TestFaceCheck from "./StudentTestFaceAuth";
+import QuestionRenderer from "../components/questions/QuestionRenderer";
+import "../../../styles/TestPage.css";
+import useCountdown from "../hooks/useCountdown";
 
 export default function TestPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const test = location.state?.test;
+  const [test, setTest] = useState(null);
+  const {assignmentId} = useParams();
 
   const [verified, setVerified] = useState(location.state?.verified || false);
   const [proctoringEnabled, setProctoringEnabled] = useState(false);
+  const [questions, setQuestions] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answers, setAnswers] = useState({});
+
+  const currentQuestion = questions[currentIndex];
 
   const { showOverlay, reenterFullscreen } = useProctoring({
     enabled: proctoringEnabled,
     navigate,
   });
 
-  // Block re-entry if user was kicked
+const shouldStartCountdown = verified && test?.duration_minutes;
+const { formatted: timeLeft } = useCountdown(
+  shouldStartCountdown ? test.duration_minutes : null,
+  () => {
+    alert("Time's up! Submitting your answers...");
+    navigate("/dashboard-student");
+  }
+);
+
+  //  Fetch Questions
+  useEffect(() => {
+  if (!assignmentId) return;
+
+  const fetchTest = async () => {
+    try {
+      const res = await axiosInstance.get(`/test-assignments/${assignmentId}/`);
+      setTest(res.data.test); 
+    } catch (err) {
+      console.error("Failed to load test data", err);
+      navigate("/dashboard-student");
+    }
+  };
+
+  fetchTest();
+}, [assignmentId]);
+
+  useEffect(() => {
+    if (!assignmentId) return;
+
+    const fetchQuestions = async () => {
+      try {
+        const res = await axiosInstance.get(`/test-assignments/${assignmentId}/questions/`);
+        setQuestions(res.data);
+      } catch (err) {
+        console.error("Error fetching questions", err);
+      }
+    };
+
+    fetchQuestions();
+  }, [assignmentId]);
+
+  //  Prevent Back
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    window.onpopstate = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+  }, []);
+
+  //Proctoring Kick Check
   useEffect(() => {
     const kicked = sessionStorage.getItem("proctoringKicked");
     if (kicked === "true") {
@@ -25,14 +84,14 @@ export default function TestPage() {
     }
   }, [navigate]);
 
-  // Redirect if test data is missing
+  // Redirect if no test
   useEffect(() => {
-    if (!test || !location.state) {
+     if (verified && (!test || !assignmentId))  {
       navigate("/dashboard-student");
     }
-  }, [test, location.state, navigate]);
+  }, [test, assignmentId, navigate]);
 
-  // Trigger fullscreen & proctoring only if required
+  // Start Fullscreen
   const handleFaceCheckSuccess = async () => {
     try {
       if (test?.use_proctoring) {
@@ -49,53 +108,82 @@ export default function TestPage() {
     }
   };
 
+  //  Logic Next
+  const handleNext = async () => {
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      // Final step: navigate or submit
+      try{
+      if(proctoringEnabled && document.fullscreenElement){
+        await document.exitFullscreen();
+      }
+    } catch(err){
+      console.warn("Failed to exit fullscreen:", err);
+    } 
+      console.log("Final answers:", answers);
+      navigate("/dashboard-student"); // TODO: replace with submit endpoint
+    }
+  };
+
+  const updateAnswer = (val) => {
+    setAnswers(prev => ({
+      ...prev,
+      [currentQuestion.id]: val,
+    }));
+  };
+
   if (!verified) {
     return <TestFaceCheck onSuccess={handleFaceCheckSuccess} />;
   }
 
-  return (
-    <div className="test-page" style={{ padding: "1rem" }}>
+  if (!test) {
+  return <p>Loading test...</p>;
+  }
+
+ return (
+  <div className="test-page">
+    {/* Test Header */}
+    <div className="test-header">
       <h2>{test.name}</h2>
-      <p>Duration: {test.duration_minutes} minutes</p>
-
-      <textarea
-        rows="5"
-        style={{ width: "100%", marginTop: "1rem" }}
-        placeholder="Try to paste here. It won't work."
-      />
-
-      {showOverlay && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.95)",
-            color: "#fff",
-            zIndex: 9999,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-            padding: "2rem",
-          }}
-        >
-          <p>You exited fullscreen or moved the window. This is your only chance to return.</p>
-          <button
-            style={{
-              padding: "1rem",
-              marginTop: "1rem",
-              fontSize: "1.2rem",
-            }}
-            onClick={reenterFullscreen}
-          >
-            Re-enter Fullscreen
-          </button>
-        </div>
-      )}
+      <div className="test-details">
+        <p>Time left: {timeLeft}</p>
+        <p>Question {currentIndex + 1} of {questions.length}</p>
+      </div>
     </div>
-  );
+
+    {/* Question Block */}
+    {currentQuestion && (
+      <>
+        <div className="question-block">
+          <strong>{currentQuestion.text}</strong>
+          <QuestionRenderer
+            question={currentQuestion}
+            answer={answers[currentQuestion.id]}
+            setAnswer={updateAnswer}
+          />
+        </div>
+
+        <button
+        className="next-button"
+          onClick={handleNext}
+          disabled={answers[currentQuestion.id] == null}
+        >
+          {currentIndex === questions.length - 1 ? "Finish" : "Next"}
+        </button>
+      </>
+    )}
+
+    {/* Fullscreen Overlay */}
+    {showOverlay && (
+      <div className="fullscreen-overlay">
+        <p>You exited fullscreen or moved the window. This is your only chance to return.</p>
+        <button onClick={reenterFullscreen}>
+          Re-enter Fullscreen
+        </button>
+      </div>
+    )}
+  </div>
+);
 }

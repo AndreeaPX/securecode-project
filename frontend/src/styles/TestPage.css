@@ -1,0 +1,151 @@
+/* === Layout & Typography === */
+.test-page {
+  margin: 0 auto;
+  padding-left: 20rem;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.fullscreen-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.95);
+  color: white;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  padding: 2rem;
+}
+
+.fullscreen-overlay button {
+  margin-top: 1rem;
+  padding: 1rem 1.5rem;
+  font-size: 1.2rem;
+  background: #2563eb;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+}
+
+
+/* === Header (Sticky) === */
+.test-header {
+
+  position: sticky;
+  top: 0;
+  background-color: #1e293b;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.test-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.test-details {
+  text-align: right;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+/* === Question Block === */
+.question-block {
+  background-color: #f8fafc;
+  padding: 1.5rem;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.question-block strong {
+  display: block;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+/* === Attachments === */
+.attachment-img {
+  max-width: 100%;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  margin-bottom: 1rem;
+}
+
+.attachment-download {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: #334155;
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  margin-bottom: 1rem;
+}
+
+/* === Input Types === */
+.single-choice label,
+.multiple-choice label {
+  display: block;
+  background-color: #fff;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid #6a717a;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.single-choice input[type="radio"],
+.multiple-choice input[type="checkbox"] {
+  margin-right: 0.5rem;
+
+}
+
+.single-choice label:hover,
+.multiple-choice label:hover {
+  background-color: #acc1d7;
+}
+
+textarea {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  resize: vertical;
+  background-color: #fff;
+  color: #1e293b;
+}
+
+/* === Code Editor === */
+.code-question {
+  margin-top: 1rem;
+}
+
+/* === Navigation Button === */
+.next-button {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.next-button:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}

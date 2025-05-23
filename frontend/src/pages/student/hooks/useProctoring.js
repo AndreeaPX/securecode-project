@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+
 export default function useProctoring({ enabled, navigate }) {
   const [showOverlay, setShowOverlay] = useState(false);
   const retriesRef = useRef(1);
@@ -8,6 +9,15 @@ export default function useProctoring({ enabled, navigate }) {
   useEffect(() => {
     if (!enabled) return;
 
+    const kickUser = (reason = "Violation") => {
+      if (!kickedRef.current) {
+        kickedRef.current = true;
+        sessionStorage.setItem("proctoringKicked", "true");
+        alert(`${reason}. You have been removed from the test.`);
+        navigate("/dashboard-student");
+      }
+    };
+
     const handleViolation = () => {
       clearTimeout(timeoutRef.current);
 
@@ -15,19 +25,12 @@ export default function useProctoring({ enabled, navigate }) {
         setShowOverlay(true);
         timeoutRef.current = setTimeout(() => {
           if (!document.fullscreenElement && !kickedRef.current) {
-            kickedRef.current = true;
-            sessionStorage.setItem("proctoringKicked", "true");
-            alert("You have been removed from the test.");
-            navigate("/dashboard-student");
+            kickUser("Fullscreen exit violation");
           }
         }, 5000);
+        retriesRef.current--;
       } else {
-        if (!kickedRef.current) {
-          kickedRef.current = true;
-          sessionStorage.setItem("proctoringKicked", "true");
-          alert("Second violation. Test ended.");
-          navigate("/dashboard-student");
-        }
+        kickUser("Second violation");
       }
     };
 
@@ -36,36 +39,49 @@ export default function useProctoring({ enabled, navigate }) {
       else setShowOverlay(false);
     };
 
-    const monitorSecondScreen = () => {
-      const left = window.screenLeft || window.screenX;
-      const width = window.screen.width;
-      if (left < -100 || left > width + 100) handleViolation();
+    const handleMouseLeave = (e) => {
+      if (!e.relatedTarget && !e.toElement) {
+        console.warn("Mouse exited window — possible second monitor usage. Please return to the test.");
+        handleViolation();
+      }
+    };
+
+    const handleWindowBlur = () => {
+      console.warn("Window lost focus");
+      handleViolation();
     };
 
     const disableKeys = (e) => {
       const key = e.key.toLowerCase();
-      if ((e.ctrlKey || e.metaKey) && ["c", "v", "x", "u", "s"].includes(key)) {
+      if ((e.ctrlKey || e.metaKey) && ["c", "v", "x", "u", "s", "a", "r", "p"].includes(key)) {
         e.preventDefault();
       }
-      if (["f12", "f11"].includes(key)) e.preventDefault();
+      if (["f12", "f11", "escape"].includes(key)) {
+        e.preventDefault();
+      }
+      if (e.altKey && (key === "tab" || key === "f4")) {
+        e.preventDefault();
+      }
     };
 
     const disablePaste = (e) => e.preventDefault();
     const disableContext = (e) => e.preventDefault();
 
+    // Setup listeners
     document.addEventListener("fullscreenchange", handleFullscreenChange);
+    window.addEventListener("blur", handleWindowBlur);
     document.addEventListener("keydown", disableKeys);
     window.addEventListener("paste", disablePaste);
     document.addEventListener("contextmenu", disableContext);
-
-    const interval = setInterval(monitorSecondScreen, 3000);
+    document.addEventListener("mouseleave", handleMouseLeave);
 
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      window.removeEventListener("blur", handleWindowBlur);
       document.removeEventListener("keydown", disableKeys);
       window.removeEventListener("paste", disablePaste);
       document.removeEventListener("contextmenu", disableContext);
-      clearInterval(interval);
+      document.removeEventListener("mouseleave", handleMouseLeave);
       clearTimeout(timeoutRef.current);
     };
   }, [enabled, navigate]);

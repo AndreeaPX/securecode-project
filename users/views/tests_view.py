@@ -6,7 +6,9 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
-
+from django.utils import timezone
+from users.serializers.questions import StudentQuestionSerializer
+import random
 
 class TestViewSet(viewsets.ModelViewSet):
     serializer_class = TestSerializer
@@ -137,9 +139,6 @@ class TestQuestionViewSet(viewsets.ModelViewSet):
         tq.delete()
         return Response(status=204)
 
-
-
-
 class TestQuestionsByTestIdAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -169,3 +168,32 @@ class TestAssignmentViewSet(viewsets.ReadOnlyModelViewSet):
             return TestAssignment.objects.filter(student=user)
         else:
             return TestAssignment.objects.none()
+
+class AssignedTestQuestionsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, assignment_id):
+        user = request.user
+
+        try:
+            assignment = TestAssignment.objects.select_related("test").get(pk=assignment_id)
+        except TestAssignment.DoesNotExist:
+            raise NotFound("Test assignment not found.")
+
+        if assignment.student != user:
+            raise PermissionDenied("You don't have access to this test.")
+
+        # randomize questions (same every time if needed, otherwise re-shuffle here)
+        test_questions = (
+            TestQuestion.objects
+            .filter(test=assignment.test)
+            .select_related("question")
+            .prefetch_related("question__options")
+        )
+
+        # Optional: shuffle questions here once, store order in session/db
+        questions_list = list(test_questions)
+        random.shuffle(questions_list)  # for now we random every time (for testing)
+        questions = [tq.question for tq in questions_list]
+        serializer = StudentQuestionSerializer(questions, many=True)
+        return Response(serializer.data)

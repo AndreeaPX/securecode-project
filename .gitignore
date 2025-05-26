@@ -12,6 +12,9 @@ venv/
 *.log
 staticfiles/
 media/
+user_faces/
+certs/
+frame_logs/
 
 # VS Code
 .vscode/

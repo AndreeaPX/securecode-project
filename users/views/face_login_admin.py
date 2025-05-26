@@ -88,6 +88,7 @@ def face_login_admin(request):
              return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
     
 
+
 @api_view(['POST'])
 @throttle_classes([SafeLoginThrottle])
 @permission_classes([IsAuthenticated])
@@ -141,3 +142,4 @@ def face_login_react(request):
 
     except Exception as e:
         return JsonResponse({"error": f"Server error: {str(e)}"}, status=500)
+

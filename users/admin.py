@@ -230,7 +230,7 @@ class StudentAnswerAdmin(admin.ModelAdmin):
 
 @admin.register(StudentActivityLog)
 class StudentActivityLogAdmin(admin.ModelAdmin):
-    list_display = ("assignment", "question", "timestamp", "focus_lost_count", "copy_paste_events")
+    list_display = ("assignment", "timestamp", "focus_lost_count", "copy_paste_events")
     list_filter = ("assignment", "timestamp", "focus_lost_count", "copy_paste_events")
     readonly_fields = [f.name for f in StudentActivityLog._meta.fields]
 

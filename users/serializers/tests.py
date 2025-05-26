@@ -60,6 +60,7 @@ class TestAssignmentSerializer(serializers.ModelSerializer):
     student_email = serializers.EmailField(source = 'student.email', read_only = True)
     test_name = serializers.CharField(source="test.name", read_only=True)
     course_name = serializers.CharField(source="test.course.name", read_only=True)
+    allowed_attempts = serializers.IntegerField(source='test.allowed_attempts', read_only = True)
     test = TestSerializer(read_only=True) 
     
     class Meta:
@@ -68,7 +69,7 @@ class TestAssignmentSerializer(serializers.ModelSerializer):
             "id", "test", "test_name", "course_name",
             "student", "student_email",
             "started_at", "finished_at", "attempt_no",
-            "ai_score", "manual_score", "reviewed_by"
+            "auto_score", "manual_score", "reviewed_by","allowed_attempts"
         ]
         read_only_fields = ["id", "student_email", "test_name", "course_name"]
 

@@ -3,6 +3,8 @@ from django.conf import settings
 from users.models.core import User, Course, StudentProfile, Series, Group
 from users.models.questions import Question, AnswerOption
 from django.core.exceptions import ValidationError
+from mimetypes import guess_type
+from datetime import timedelta
 
 class Test(models.Model):
     TEST_TYPES = [
@@ -22,6 +24,7 @@ class Test(models.Model):
     allow_copy_paste = models.BooleanField(default=False)
     use_proctoring = models.BooleanField(default=False)
     has_ai_assistent = models.BooleanField(default=False)
+    show_result = models.BooleanField(default=False)
     maxim_points = models.IntegerField(default=90, null=False)
     extra_points = models.IntegerField(default=10, null=False)
     is_submitted = models.BooleanField(default=False) 
@@ -44,7 +47,18 @@ class Test(models.Model):
             raise ValidationError("Choose either a target series or a target group, not both.")
         if not self.target_series and not self.target_group:
             raise ValidationError("Test must target at least a series or a group.")
-        
+        if self.use_proctoring:
+            from users.models.questions import QuestionAttachment
+            has_non_image_attachment = Question.objects.filter(
+                test_questions__test = self,
+                attachments__isnull = False
+            ).exclude(
+                attachments__file__iendswith=('.png', '.jpg', '.jpeg', '.gif', '.webp')
+            ).exists()
+            if has_non_image_attachment:
+                raise ValidationError("Proctoring is not allowed if test has downloadable (non-image) attachments.")
+
+
     def assign(self):
         filters = {}
         if self.target_series:
@@ -77,6 +91,7 @@ class TestQuestion(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     is_required = models.BooleanField(default=False)
     order = models.IntegerField(default=0)
+    points = models.IntegerField(default=0)
 
     def __str__(self):
         return f"{self.test.name} - Q{self.order}"
@@ -89,7 +104,7 @@ class TestAssignment(models.Model):
     finished_at = models.DateTimeField(null=True, blank=True)
     attempt_no = models.IntegerField(default=1)
 
-    ai_score = models.FloatField(null=True, blank=True)
+    auto_score = models.FloatField(null=True, blank=True)
     manual_score = models.FloatField(null=True, blank=True)
     reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_tests")
 
@@ -101,8 +116,7 @@ class StudentAnswer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     answer_text = models.TextField(null=True, blank=True)
     selected_options = models.ManyToManyField(AnswerOption, blank=True)
-    time_spent = models.DurationField()
-    ai_feedback = models.TextField(null=True, blank=True)
+    feedback = models.TextField(null=True, blank=True)
     needs_manual_review = models.BooleanField(default=False)
 
     def __str__(self):
@@ -110,15 +124,16 @@ class StudentAnswer(models.Model):
 
 class StudentActivityLog(models.Model):
     assignment = models.ForeignKey(TestAssignment, on_delete=models.CASCADE, related_name="activity_logs")
-    question = models.ForeignKey(Question, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
-
+    time_spent = models.DurationField(default=timedelta(seconds=0))
     mouse_x = models.IntegerField(null=True, blank=True)
     mouse_y = models.IntegerField(null=True, blank=True)
     key_press_count = models.IntegerField(default=0)
     focus_lost_count = models.IntegerField(default=0)
     copy_paste_events = models.IntegerField(default=0)
     anomaly_score = models.FloatField(null=True, blank=True)
+    event_type = models.CharField(max_length=100, null=True, blank=True)
+    event_message = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.assignment} - Activity at {self.timestamp}"

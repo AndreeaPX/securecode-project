@@ -43,5 +43,5 @@ class QuestionViewApi(viewsets.ModelViewSet):
                 return Question.objects.filter(course_id__in=courses_ids).prefetch_related('options')
             else:
                 return Question.objects.none()
-        else:  # to be modified
+        else:  
             return Question.objects.none()

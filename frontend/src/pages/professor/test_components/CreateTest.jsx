@@ -29,6 +29,7 @@ export default function CreateTest({ editMode, viewMode }) {
     allow_copy_paste: false,
     use_proctoring: false,
     has_ai_assistent: false,
+    show_result:false,
     maxim_points:90,
     extra_points:10,
     target_series: "",
@@ -39,75 +40,89 @@ export default function CreateTest({ editMode, viewMode }) {
   const isSubmitted = testData.is_submitted === true;
   const isReadOnly = viewMode || isSubmitted;
   const [submitting, setSubmitting] = useState(false);
-useEffect(() => {
-  if (!user) return;
 
-  const init = async () => {
-    try {
-      const [coursesRes, profileRes] = await Promise.all([
-        axiosInstance.get("/courses/"),
-        axiosInstance.get("/settings/professor/")
-      ]);
+  useEffect(() => {
+    if (!user) return;
 
-      setCourses(coursesRes.data);
-      setAvailableSeries(profileRes.data.lecture_series || []);
-      setAvailableGroups(profileRes.data.seminar_groups || []);
+    const init = async () => {
+      try {
+        const [coursesRes, profileRes] = await Promise.all([
+          axiosInstance.get("/courses/"),
+          axiosInstance.get("/settings/professor/")
+        ]);
 
-      if ((viewMode||editMode) && testId) {
-        const testRes = await axiosInstance.get(`/tests/${testId}/`);
-        const testDataRaw = testRes.data;
+        setCourses(coursesRes.data);
+        setAvailableSeries(profileRes.data.lecture_series || []);
+        setAvailableGroups(profileRes.data.seminar_groups || []);
 
-        setTestData({
-          ...testDataRaw,
-          target_series: testDataRaw.target_series || "",
-          target_group: testDataRaw.target_group || "",
-          is_submitted : testDataRaw.is_submitted || false
-        });
+        if ((viewMode||editMode) && testId) {
+          const testRes = await axiosInstance.get(`/tests/${testId}/`);
+          const testDataRaw = testRes.data;
 
-        
-        const testQuestionsRes = await axiosInstance.get(`/tests/${testId}/questions/`);
-        const testQuestions = testQuestionsRes.data
-          .map((tq) => tq.question)
-          .filter((q) => q && String(q.course) === String(testDataRaw.course));
+          setTestData({
+            ...testDataRaw,
+            target_series: testDataRaw.target_series || "",
+            target_group: testDataRaw.target_group || "",
+            is_submitted : testDataRaw.is_submitted || false
+          });
 
-        const testQuestionIds = testQuestions.map((q) => q.id);
+          
+          const testQuestionsRes = await axiosInstance.get(`/tests/${testId}/questions/`);
+          const testQuestions = testQuestionsRes.data
+            .map((tq) => tq.question)
+            .filter((q) => q && String(q.course) === String(testDataRaw.course));
 
-        setCurrentQuestions(testQuestions);
-        setSelectedQuestionIds(testQuestionIds);
-        setInitialQuestionsIds(testQuestionIds);
+          const testQuestionIds = testQuestions.map((q) => q.id);
 
-        const suggestedRes = await axiosInstance.get("/questions/", {
-          params: {
-            course: testDataRaw.course,
-            ordering: "-created_at",
-            limit: 5
-          }
-        });
+          setCurrentQuestions(testQuestions);
+          setSelectedQuestionIds(testQuestionIds);
+          setInitialQuestionsIds(testQuestionIds);
 
-        const suggested = suggestedRes.data.filter(
-          (q) => !testQuestionIds.includes(q.id)
-        );
-        setSuggestedQuestions(suggested);
-      } else {
-        const draft = localStorage.getItem("testDraft");
-        if (draft) {
-          const parsed = JSON.parse(draft);
-          if (parsed.name && parsed.course) {
-            setTestData(parsed);
-          } else {
-            localStorage.removeItem("testDraft");
+          const suggestedRes = await axiosInstance.get("/questions/", {
+            params: {
+              course: testDataRaw.course,
+              ordering: "-created_at",
+              limit: 20
+            }
+          });
+
+          const suggested = suggestedRes.data.filter(
+            (q) => !testQuestionIds.includes(q.id)
+          );
+          setSuggestedQuestions(suggested);
+        } else {
+          const draft = localStorage.getItem("testDraft");
+          if (draft) {
+            const parsed = JSON.parse(draft);
+            if (parsed.name && parsed.course) {
+              setTestData(parsed);
+            } else {
+              localStorage.removeItem("testDraft");
+            }
           }
         }
+      } catch (err) {
+        console.error("Failed to load data:", err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Failed to load data:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  init();
-}, [user, editMode, testId]);
+    init();
+  }, [user, editMode, testId]);
+
+  useEffect(() => {
+  const hasDownloadableAttachments = currentQuestions.some((q) =>
+    (q.attachments || []).some((a) =>
+      ![".jpg", ".jpeg", ".png", ".gif"].some(ext => a.file_name?.toLowerCase().endsWith(ext))
+    )
+  );
+
+  if (hasDownloadableAttachments && testData.use_proctoring) {
+    alert("Proctoring cannot be used with questions that require file downloads.");
+    setTestData((prev) => ({ ...prev, use_proctoring: false }));
+  }
+  }, [currentQuestions, testData.use_proctoring]);
 
   
 
@@ -118,6 +133,16 @@ useEffect(() => {
       ...prev,
       [name]: type === "checkbox" ? checked : value
     }));
+      
+    if(testData.show_result){
+      const onlyGrila = currentQuestions.every(
+        (q) => q.type === "single" || q.type === "multiple"
+      );
+        if (!onlyGrila) {
+      alert("You can only enable 'Show Result' for tests with single/multiple choice questions.");
+      return;
+    }
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -366,6 +391,16 @@ useEffect(() => {
               onChange={handleChange}
             />
             Enable AI Assistant
+          </label>
+          <label>
+            <input 
+            type = "checkbox"
+            name = "show_result"
+            checked={testData.show_result}
+            disabled={!currentQuestions.every(q => q.type === "single" || q.type === "multiple")}
+            onChange={handleChange}
+            />
+            Show Result (auto-grade) Only for Quizzes
           </label>
         </div>
 

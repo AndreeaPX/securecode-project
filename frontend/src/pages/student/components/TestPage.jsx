@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../../../api/axios";
 import useProctoring from "../hooks/useProctoring";
+import WebcamMonitor from "../hooks/WebcamMonitor";
 import TestFaceCheck from "./StudentTestFaceAuth";
 import QuestionRenderer from "../components/questions/QuestionRenderer";
 import "../../../styles/TestPage.css";
 import useCountdown from "../hooks/useCountdown";
+
 
 export default function TestPage() {
   const location = useLocation();
@@ -18,22 +20,22 @@ export default function TestPage() {
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
-
   const currentQuestion = questions[currentIndex];
-
   const { showOverlay, reenterFullscreen } = useProctoring({
     enabled: proctoringEnabled,
     navigate,
   });
+  const shouldStartCountdown = verified && test?.duration_minutes;
+  const [submitting, setSubmitting] = useState(false);
 
-const shouldStartCountdown = verified && test?.duration_minutes;
-const { formatted: timeLeft } = useCountdown(
-  shouldStartCountdown ? test.duration_minutes : null,
-  () => {
-    alert("Time's up! Submitting your answers...");
-    navigate("/dashboard-student");
-  }
-);
+  const { formatted: timeLeft } = useCountdown(
+    shouldStartCountdown ? test.duration_minutes : null,
+    async () => {
+      alert("Time's up! Submitting your answers...");
+      await submitTest();
+      navigate("/dashboard-student");
+    }
+  );
 
   //  Fetch Questions
   useEffect(() => {
@@ -108,6 +110,61 @@ const { formatted: timeLeft } = useCountdown(
     }
   };
 
+  //Submit Function
+ const submitTest = async () => {
+  if (submitting) return;
+  setSubmitting(true);
+
+  const payload = {
+    assignment_id: parseInt(assignmentId),
+    answers: Object.entries(answers).map(([questionId, answerVal]) => {
+      const questionObj = questions.find(
+        q => q.id === parseInt(questionId) || q.question?.id === parseInt(questionId)
+      );
+      const question = questionObj?.question || questionObj;
+
+      const base = { question_id: question.id };
+
+      if (question.type === "open" || question.type === "code") {
+        base.answer_text = answerVal;
+      } else if (question.type === "single") {
+        base.selected_option_ids = [answerVal];
+      } else if (question.type === "multiple") {
+        base.selected_option_ids = answerVal;
+      }
+
+      return base;
+    }),
+  };
+
+  try {
+    const res = await axiosInstance.post("/submit-answers/", payload);
+    if (test?.use_proctoring){
+      if(document.fullscreenElement){
+        await document.exitFullscreen();
+      }
+      setProctoringEnabled(false);
+      navigate("/dashboard-student");
+    }else{
+    alert("Attempt submitted!");
+    navigate("/dashboard-student");}
+  } catch (err) {
+    if (err.response?.data?.detail) {
+          if (test?.use_proctoring){
+      navigate("/dashboard-student");}
+      else
+      alert(`Error: ${err.response.data.detail}`);
+    } else {
+          if (test?.use_proctoring){
+      navigate("/dashboard-student");}
+      else
+      alert("Something went wrong while submitting. Try again.");
+    }
+  } finally {
+    setSubmitting(false);
+  }
+};
+
   //  Logic Next
   const handleNext = async () => {
     if (currentIndex < questions.length - 1) {
@@ -119,11 +176,12 @@ const { formatted: timeLeft } = useCountdown(
       if(proctoringEnabled && document.fullscreenElement){
         await document.exitFullscreen();
       }
+      setProctoringEnabled(false);
     } catch(err){
       console.warn("Failed to exit fullscreen:", err);
     } 
       console.log("Final answers:", answers);
-      navigate("/dashboard-student"); // TODO: replace with submit endpoint
+      await submitTest();
     }
   };
 
@@ -138,12 +196,18 @@ const { formatted: timeLeft } = useCountdown(
     return <TestFaceCheck onSuccess={handleFaceCheckSuccess} />;
   }
 
+
+
+
   if (!test) {
   return <p>Loading test...</p>;
   }
 
  return (
   <div className="test-page">
+    {test?.has_ai_assistent && assignmentId && (
+      <WebcamMonitor assignmentId={assignmentId} />
+    )}
     {/* Test Header */}
     <div className="test-header">
       <h2>{test.name}</h2>

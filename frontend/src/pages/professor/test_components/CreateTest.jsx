@@ -112,12 +112,20 @@ export default function CreateTest({ editMode, viewMode }) {
   }, [user, editMode, testId]);
 
   useEffect(() => {
-  const hasDownloadableAttachments = currentQuestions.some((q) =>
-    (q.attachments || []).some((a) =>
-      ![".jpg", ".jpeg", ".png", ".gif"].some(ext => a.file_name?.toLowerCase().endsWith(ext))
-    )
+    console.log("Current Questions:", currentQuestions);
+    const questionsWithAttachments = currentQuestions.filter(q => q.attachments && q.attachments.length > 0);
+console.log("Questions with attachments:", questionsWithAttachments);
+const hasDownloadableAttachments = currentQuestions.some((q) =>
+  (q.attachments || []).some((a) => {
+    
+    const fileName = a?.file?.toLowerCase() || "";
+    console.log(fileName)
+    return !fileName.endsWith(".jpg") &&
+           !fileName.endsWith(".jpeg") &&
+           !fileName.endsWith(".png") &&
+           !fileName.endsWith(".gif");
+  })
   );
-
   if (hasDownloadableAttachments && testData.use_proctoring) {
     alert("Proctoring cannot be used with questions that require file downloads.");
     setTestData((prev) => ({ ...prev, use_proctoring: false }));

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from users.models.core import Course
 from users.models.questions import Question, AnswerOption
-from users.models.tests import TestAssignment, StudentAnswer
+from users.models.tests import TestAssignment, StudentAnswer, StudentActivityLog
 from django.utils.dateparse import parse_duration
 from django.utils import timezone
 
@@ -40,7 +40,6 @@ class SubmitAnswersSerializer(serializers.Serializer):
             if assignment.attempt_no >= test.allowed_attempts:
                 raise serializers.ValidationError("You have used all allowed attempts.")
 
-
         data["assignment"] = assignment
         return data
 
@@ -52,6 +51,7 @@ class SubmitAnswersSerializer(serializers.Serializer):
 
         if test.type == "training":
             assignment.answers.all().delete()
+            StudentActivityLog.objects.filter(assignment=assignment, attempt_no__lt = assignment.attempt_no).delete()
             assignment.attempt_no += 1
             assignment.finished_at = timezone.now()
             assignment.save()
@@ -100,6 +100,7 @@ class SubmitAnswersSerializer(serializers.Serializer):
                             pass
                 assignment.auto_score = round(total_score,2)
         assignment.save()
+
 
         return {
             "status": "submitted",

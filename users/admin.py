@@ -13,7 +13,7 @@ from .models.core import User, UserInvitation, Faculty, Specialization, Course, 
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 
 from .models.questions import Question, AnswerOption, QuestionAttachment
-from .models.tests import Test,TestQuestion,TestAssignment,StudentAnswer,StudentActivityLog
+from .models.tests import Test,TestQuestion,TestAssignment,StudentAnswer,StudentActivityLog, StudentActivityAnalysis
 
 
 
@@ -71,20 +71,20 @@ class CustomAdminUser(UserAdmin):
             if obj.role == "admin":
                 login_url = "https://localhost:8000/admin/"
             try:
-                send_mail(
-                    subject="You're invited to SecureCode",
-                    message=(
-                        f"Hello,\n\n"
-                        f"You’ve been added to SecureCode as a {obj.role}.\n"
-                        f"Use this one-time code: {otp_token}\n"
-                        f"Login here: {login_url}\n\n"
-                        f"This code expires in 24 hours.\n\n"
-                        f"– SecureCode Team"
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[obj.email],
-                fail_silently=False,
-                )
+                # send_mail(
+                #     subject="You're invited to SecureCode",
+                #     message=(
+                #         f"Hello,\n\n"
+                #         f"You’ve been added to SecureCode as a {obj.role}.\n"
+                #         f"Use this one-time code: {otp_token}\n"
+                #         f"Login here: {login_url}\n\n"
+                #         f"This code expires in 24 hours.\n\n"
+                #         f"– SecureCode Team"
+                # ),
+                # from_email=settings.DEFAULT_FROM_EMAIL,
+                # recipient_list=[obj.email],
+                # fail_silently=False,
+                # )
                 print(otp_token)
                 print(obj.email)
             except Exception as e :
@@ -230,9 +230,42 @@ class StudentAnswerAdmin(admin.ModelAdmin):
 
 @admin.register(StudentActivityLog)
 class StudentActivityLogAdmin(admin.ModelAdmin):
-    list_display = ("assignment", "timestamp", "focus_lost_count", "copy_paste_events")
-    list_filter = ("assignment", "timestamp", "focus_lost_count", "copy_paste_events")
+    list_display = ("assignment_id_display", "event_type", "timestamp", "anomaly_score")
+    list_filter = ("event_type", "assignment__id")
+    search_fields = ("assignment__id", "event_type", "event_message")
     readonly_fields = [f.name for f in StudentActivityLog._meta.fields]
+
+    def assignment_id_display(self, obj):
+        return f"Assignment #{obj.assignment.id}"
+    assignment_id_display.short_description = "Assignment"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+    
+@admin.register(StudentActivityAnalysis)
+class StudentActivityAnalysisAdmin(admin.ModelAdmin):
+    list_display = (
+        "assignment_id_display",
+        "esc_pressed",
+        "second_screen_events",
+        "tab_switches",
+        "window_blurs",
+        "total_key_presses",
+        "average_key_delay",
+        "copy_paste_events",
+        "is_suspicious",
+        "analyzed_at"
+    )
+    list_filter = ("is_suspicious", "assignment__id")
+    search_fields = ("assignment__id",)
+    readonly_fields = [f.name for f in StudentActivityAnalysis._meta.fields]
+
+    def assignment_id_display(self, obj):
+        return f"Assignment #{obj.assignment.id}"
+    assignment_id_display.short_description = "Assignment"
 
     def has_add_permission(self, request):
         return False

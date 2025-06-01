@@ -7,6 +7,7 @@ import TestFaceCheck from "./StudentTestFaceAuth";
 import QuestionRenderer from "../components/questions/QuestionRenderer";
 import "../../../styles/TestPage.css";
 import useCountdown from "../hooks/useCountdown";
+import useUserActivityMonitor from "../hooks/useUserActivityMonitor";
 
 
 export default function TestPage() {
@@ -27,6 +28,9 @@ export default function TestPage() {
   });
   const shouldStartCountdown = verified && test?.duration_minutes;
   const [submitting, setSubmitting] = useState(false);
+
+  const shouldMonitor = verified && test?.has_ai_assistent;
+  useUserActivityMonitor(shouldMonitor ? assignmentId : null);
 
   const { formatted: timeLeft } = useCountdown(
     shouldStartCountdown ? test.duration_minutes : null,
@@ -146,7 +150,7 @@ export default function TestPage() {
       setProctoringEnabled(false);
       navigate("/dashboard-student");
     }else{
-    alert("Attempt submitted!");
+    //alert("Attempt submitted!");
     navigate("/dashboard-student");}
   } catch (err) {
     if (err.response?.data?.detail) {
@@ -206,7 +210,7 @@ export default function TestPage() {
  return (
   <div className="test-page">
     {test?.has_ai_assistent && assignmentId && (
-      <WebcamMonitor assignmentId={assignmentId} />
+      <WebcamMonitor assignmentId={assignmentId} currentQuestionId={currentQuestion?.id} />
     )}
     {/* Test Header */}
     <div className="test-header">

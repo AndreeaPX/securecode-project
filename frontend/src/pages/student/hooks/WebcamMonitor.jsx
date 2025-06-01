@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import axiosInstance from "../../../api/axios";
 
-export default function WebcamMonitor({ assignmentId }) {
+export default function WebcamMonitor({ assignmentId , currentQuestionId }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function WebcamMonitor({ assignmentId }) {
     const captureAndSend = async () => {
       const canvas = document.createElement("canvas");
       const video = videoRef.current;
-      if (!video) return;
+      if (!video || !video.videoWidth || !video.videoHeight) return;
 
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -33,7 +33,8 @@ export default function WebcamMonitor({ assignmentId }) {
       try {
         await axiosInstance.post("/proctoring/live-face-check/", {
           face_image: dataUrl,
-          assignment_id: assignmentId
+          assignment_id: assignmentId,
+          question_id:currentQuestionId || null,
         });
       } catch (err) {
         console.warn("Live face check failed:", err?.response?.data || err.message);
@@ -41,7 +42,7 @@ export default function WebcamMonitor({ assignmentId }) {
     };
 
     startCamera();
-    const interval = setInterval(captureAndSend, 5000);
+    const interval = setInterval(captureAndSend, 10000);
 
     return () => {
       clearInterval(interval);
@@ -49,7 +50,7 @@ export default function WebcamMonitor({ assignmentId }) {
         stream.getTracks().forEach(track => track.stop());
       }
     };
-  }, [assignmentId]);
+  }, [assignmentId, currentQuestionId]);
 
   return <video ref={videoRef} style={{ display: "none" }} />;
 }

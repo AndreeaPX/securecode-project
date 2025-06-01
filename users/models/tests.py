@@ -3,7 +3,6 @@ from django.conf import settings
 from users.models.core import User, Course, StudentProfile, Series, Group
 from users.models.questions import Question, AnswerOption
 from django.core.exceptions import ValidationError
-from mimetypes import guess_type
 from datetime import timedelta
 
 class Test(models.Model):
@@ -124,16 +123,37 @@ class StudentAnswer(models.Model):
 
 class StudentActivityLog(models.Model):
     assignment = models.ForeignKey(TestAssignment, on_delete=models.CASCADE, related_name="activity_logs")
+    attempt_no = models.IntegerField(default=1)
     timestamp = models.DateTimeField(auto_now_add=True)
-    time_spent = models.DurationField(default=timedelta(seconds=0))
-    mouse_x = models.IntegerField(null=True, blank=True)
-    mouse_y = models.IntegerField(null=True, blank=True)
-    key_press_count = models.IntegerField(default=0)
     focus_lost_count = models.IntegerField(default=0)
-    copy_paste_events = models.IntegerField(default=0)
     anomaly_score = models.FloatField(null=True, blank=True)
     event_type = models.CharField(max_length=100, null=True, blank=True)
     event_message = models.TextField(null=True, blank=True)
 
+    pressed_key = models.CharField(max_length=10, null=True, blank=True)
+    key_delay = models.FloatField(null=True, blank=True)
+
     def __str__(self):
         return f"{self.assignment} - Activity at {self.timestamp}"
+    
+class StudentActivityAnalysis(models.Model):
+    assignment = models.ForeignKey(TestAssignment, on_delete=models.CASCADE, related_name="activity_analysis")
+    attempt_no = models.IntegerField(default=1)
+    esc_pressed = models.IntegerField(default=0)
+    second_screen_events = models.IntegerField(default=0)
+    tab_switches = models.IntegerField(default=0)
+    window_blurs = models.IntegerField(default=0)
+    total_key_presses = models.IntegerField(default=0)
+    average_key_delay = models.FloatField(null=True, blank=True)
+
+    copy_paste_events = models.IntegerField(default=0)
+    total_focus_lost = models.IntegerField(default=0)
+
+    is_suspicious = models.BooleanField(default=False)
+    analyzed_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("assignment", "attempt_no")
+
+    def __str__(self):
+        return f"Analysis for assignment {self.assignment.id}"

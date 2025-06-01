@@ -22,6 +22,9 @@ from .views.face_login_admin import face_login_react
 from .views.webcamera_proctoring_view import live_face_check
 from .views.student_view import StudentCoursesAPIView, StudentActiveTestsGroupedByCourseAPIView
 from .views.submit_view import SubmitAnswersView
+from .views.mouse_keyboard_view import mouse_keyboard_check
+
+from .views.ai_view import test_lstm_sequence
 
 router = DefaultRouter()
 router.register(r'questions', QuestionViewApi, basename='questions')
@@ -41,9 +44,11 @@ urlpatterns = [
     path('tests/<int:test_id>/questions/', TestQuestionsByTestIdAPIView.as_view(), name='test-questions-by-test'),
     path("face-login/", face_login_react, name="face-login-react"),
     path("proctoring/live-face-check/", live_face_check, name = "live_face_check"),
+    path("proctoring/mouse_keyboard_check/", mouse_keyboard_check, name = "mouse_keyboard_check"),
     path("dashboard/student-courses/", StudentCoursesAPIView.as_view(), name="student-dashboard-courses"),
     path("student/tests-by-course/", StudentActiveTestsGroupedByCourseAPIView.as_view(), name="student-tests-by-course"),
     path("test-assignments/<int:assignment_id>/questions/", AssignedTestQuestionsAPIView.as_view(), name="assigned-test-questions"),
+    path("ai/lstm-sequence/<int:assignment_id>/", test_lstm_sequence,name="test_lstm_sequence" ),
     path("submit-answers/", SubmitAnswersView.as_view(), name="submit-answers"),
     path('', include(router.urls)),
 ]

@@ -128,7 +128,7 @@ def face_login_react(request):
             return JsonResponse({"success": True, "first_time": True})
 
         stored_encoding = pickle.loads(user.face_encoding)
-        match = face_recognition.compare_faces([stored_encoding], uploaded_encoding, tolerance=0.50)[0]
+        match = face_recognition.compare_faces([stored_encoding], uploaded_encoding, tolerance=0.5)[0]
 
         if match:
             user.failed_face_attempts = 0

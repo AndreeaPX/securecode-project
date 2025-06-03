@@ -26,7 +26,7 @@ export default function CreateTest({ editMode, viewMode }) {
     deadline: "",
     duration_minutes: 60,
     allowed_attempts: 1,
-    allow_copy_paste: false,
+    allow_sound_analysis: false,
     use_proctoring: false,
     has_ai_assistent: false,
     show_result:false,
@@ -114,25 +114,31 @@ export default function CreateTest({ editMode, viewMode }) {
   useEffect(() => {
     console.log("Current Questions:", currentQuestions);
     const questionsWithAttachments = currentQuestions.filter(q => q.attachments && q.attachments.length > 0);
-console.log("Questions with attachments:", questionsWithAttachments);
-const hasDownloadableAttachments = currentQuestions.some((q) =>
-  (q.attachments || []).some((a) => {
-    
-    const fileName = a?.file?.toLowerCase() || "";
-    console.log(fileName)
-    return !fileName.endsWith(".jpg") &&
-           !fileName.endsWith(".jpeg") &&
-           !fileName.endsWith(".png") &&
-           !fileName.endsWith(".gif");
-  })
-  );
-  if (hasDownloadableAttachments && testData.use_proctoring) {
-    alert("Proctoring cannot be used with questions that require file downloads.");
-    setTestData((prev) => ({ ...prev, use_proctoring: false }));
-  }
-  }, [currentQuestions, testData.use_proctoring]);
+    console.log("Questions with attachments:", questionsWithAttachments);
+    const hasDownloadableAttachments = currentQuestions.some((q) =>
+      (q.attachments || []).some((a) => {
+        
+        const fileName = a?.file?.toLowerCase() || "";
+        console.log(fileName)
+        return !fileName.endsWith(".jpg") &&
+              !fileName.endsWith(".jpeg") &&
+              !fileName.endsWith(".png") &&
+              !fileName.endsWith(".gif");
+      })
+      );
+      if (hasDownloadableAttachments && testData.use_proctoring) {
+        alert("Proctoring cannot be used with questions that require file downloads.");
+        setTestData((prev) => ({ ...prev, use_proctoring: false }));
+      }
+      }, [currentQuestions, testData.use_proctoring]);
 
-  
+
+  useEffect(() => {
+    if(testData.allow_sound_analysis && !testData.has_ai_assistent){
+      alert("Sound analysis can only be enabled if AI Assistant is active.");
+      setTestData((prev) => ({ ...prev, allow_sound_analysis: false }));
+    }
+  }, [testData.allow_sound_analysis, testData.has_ai_assistent])
 
 
   const handleChange = (e) => {
@@ -376,11 +382,11 @@ const hasDownloadableAttachments = currentQuestions.some((q) =>
           <label>
             <input
               type="checkbox"
-              name="allow_copy_paste"
-              checked={testData.allow_copy_paste}
+              name="allow_sound_analysis"
+              checked={testData.allow_sound_analysis}
               onChange={handleChange}
             />
-            Allow Copy-Paste
+            Allow Sound Analysis - Reccomended only for online examinations
           </label>
           <label>
             <input

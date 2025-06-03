@@ -19,6 +19,7 @@ class Question(models.Model):
         ('c','C'),
         ('cpp','C++'),
         ('javascript','JavaScript'),
+        ('sql','SQL'),
         ('other','Other')
     ]
 

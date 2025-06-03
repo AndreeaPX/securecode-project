@@ -42,7 +42,7 @@ export default function WebcamMonitor({ assignmentId , currentQuestionId }) {
     };
 
     startCamera();
-    const interval = setInterval(captureAndSend, 10000);
+    const interval = setInterval(captureAndSend, 3000);
 
     return () => {
       clearInterval(interval);

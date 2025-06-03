@@ -20,7 +20,7 @@ class Test(models.Model):
     deadline = models.DateTimeField(null=True, blank=True)
     duration_minutes = models.IntegerField(default=30)
     allowed_attempts = models.IntegerField(null=True, blank=True)
-    allow_copy_paste = models.BooleanField(default=False)
+    allow_sound_analysis = models.BooleanField(default=False)
     use_proctoring = models.BooleanField(default=False)
     has_ai_assistent = models.BooleanField(default=False)
     show_result = models.BooleanField(default=False)
@@ -129,10 +129,8 @@ class StudentActivityLog(models.Model):
     anomaly_score = models.FloatField(null=True, blank=True)
     event_type = models.CharField(max_length=100, null=True, blank=True)
     event_message = models.TextField(null=True, blank=True)
-
     pressed_key = models.CharField(max_length=10, null=True, blank=True)
     key_delay = models.FloatField(null=True, blank=True)
-
     def __str__(self):
         return f"{self.assignment} - Activity at {self.timestamp}"
     
@@ -145,15 +143,23 @@ class StudentActivityAnalysis(models.Model):
     window_blurs = models.IntegerField(default=0)
     total_key_presses = models.IntegerField(default=0)
     average_key_delay = models.FloatField(null=True, blank=True)
-
     copy_paste_events = models.IntegerField(default=0)
     total_focus_lost = models.IntegerField(default=0)
-
     is_suspicious = models.BooleanField(default=False)
     analyzed_at = models.DateTimeField(auto_now=True)
-
     class Meta:
         unique_together = ("assignment", "attempt_no")
 
     def __str__(self):
         return f"Analysis for assignment {self.assignment.id}"
+    
+class TempFaceEventState(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    assignment = models.ForeignKey(TestAssignment, on_delete=models.CASCADE)
+    attempt_no = models.IntegerField(default=1)
+    event_type = models.CharField(max_length=50)
+    first_seen = models.DateTimeField(auto_now_add=True)
+    last_seen = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "assignment", "attempt_no", "event_type")

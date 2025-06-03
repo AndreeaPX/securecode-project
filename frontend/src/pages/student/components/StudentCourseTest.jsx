@@ -80,7 +80,8 @@ export default function StudentCourseTest() {
                 <div className="test-options">
                   {test.use_proctoring && <span>🔒 Proctoring Enabled</span>}
                   {test.has_ai_assistent && <span>🤖 AI Assistant</span>}
-                  {test.allow_copy_paste && <span>📋 Copy-Paste Allowed</span>}
+                  {test.allow_sound_analysis && <span>🔊 Sound Analysis Allowed</span>}
+                  {test.show_result && <span>📊 Show Result</span>}
                 </div>
 
                 {test.finished_at ? (

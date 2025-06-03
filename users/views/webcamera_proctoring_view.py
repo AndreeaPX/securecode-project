@@ -1,6 +1,7 @@
-from users.models.tests import TestAssignment, StudentActivityLog
+from users.models.tests import TestAssignment, StudentActivityLog, TempFaceEventState
 from users.models.questions import Question
 import numpy as np
+from datetime import timedelta
 from ultralytics import YOLO
 from django.utils import timezone
 import os
@@ -23,12 +24,37 @@ face_mesh_detector = mp_face_mesh.FaceMesh(
     refine_landmarks=True
 )
 
+def log_event(user,assignment, attempt_no, event_type, debounce_seconds=5):
+    now = timezone.now()
+    try:
+        event = TempFaceEventState.objects.get(
+            user=user,
+            assignment=assignment,
+            attempt_no=attempt_no,
+            event_type=event_type
+        )
+        if now - event.first_seen > timedelta(seconds=debounce_seconds):
+            event.delete()
+            return True
+        else:
+            event.last_seen=now
+            event.save(update_fields=["last_seen"])
+            return False
+    except TempFaceEventState.DoesNotExist:
+        TempFaceEventState.objects.create(
+            user=user,
+            assignment = assignment,
+            attempt_no=attempt_no,
+            event_type=event_type
+        )
+        return False
+
 def detect_gaze_direction(img):
     rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     results = face_mesh_detector.process(rgb)
 
     if not results.multi_face_landmarks:
-        return "inconclusive", "inconclusive"
+        return "inconclusive", "inconclusive", None, None
     
     landmarks = results.multi_face_landmarks[0].landmark
 
@@ -97,7 +123,13 @@ def detect_gaze_direction(img):
     else:
         head_pose = "neutral"
 
-    return gaze, head_pose
+    # --- MOUTH OPEN ---
+    mouth_top = landmarks[13]
+    mouth_bottom = landmarks[14]
+    mouth_open_ratio = mouth_bottom.y - mouth_top.y
+    mouth_open = mouth_open_ratio > 0.03
+
+    return gaze, head_pose, results, mouth_open
 
 
 @api_view(['POST'])
@@ -158,21 +190,44 @@ def live_face_check(request):
         return JsonResponse({"error": "Mobile phone detected"}, status=200)
         
     #head and gaze detection
-    gaze_direction, head_pose = detect_gaze_direction(img)
+    gaze_direction, head_pose, mp_results, mouth_open = detect_gaze_direction(img)
     
+    mouth_event_type = "mouth_open" if mouth_open else "mouth_closed"
+    TempFaceEventState.objects.update_or_create(
+    user=user,
+    assignment=assignment,
+    attempt_no=assignment.attempt_no,
+    event_type=mouth_event_type,
+    defaults={"last_seen": timezone.now()}
+    )
+
+    TempFaceEventState.objects.filter(
+    user=user,
+    assignment=assignment,
+    attempt_no=assignment.attempt_no,
+    event_type="mouth_closed" if mouth_open else "mouth_open"
+    ).delete()
+
     is_looking_down_allowed = question_type in ["code", "open"]
     
     if gaze_direction in ["left", "right"]:
-        timestamp = timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
-        cv2.imwrite(f"frame_logs/frame_gaze_{gaze_direction}_{timestamp}.jpg", img)
-        StudentActivityLog.objects.create(
-            assignment = assignment,
-            attempt_no=assignment.attempt_no,
-            focus_lost_count = 1,
-            anomaly_score = 0.6,
-            event_type="gaze_offscreen",
-            event_message=f"Student appears to be looking {gaze_direction}."
-        )
+        if log_event(user, assignment, assignment.attempt_no, "gaze_offscreen", debounce_seconds=5):
+            timestamp = timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
+            cv2.imwrite(f"frame_logs/frame_gaze_{gaze_direction}_{timestamp}.jpg", img)
+            StudentActivityLog.objects.create(
+                assignment = assignment,
+                attempt_no=assignment.attempt_no,
+                focus_lost_count = 1,
+                anomaly_score = 0.3,
+                event_type="gaze_offscreen",
+                event_message=f"Student appears to be looking {gaze_direction}."
+            )
+            TempFaceEventState.objects.filter(
+                user=user,
+                assignment=assignment,
+                attempt_no=assignment.attempt_no,
+                event_type="gaze_offscreen"
+            ).delete()
     elif gaze_direction == "down" and not is_looking_down_allowed:
         timestamp = timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
         cv2.imwrite(f"frame_logs/frame_gaze_down_{timestamp}.jpg", img)
@@ -180,53 +235,79 @@ def live_face_check(request):
             assignment=assignment,
             attempt_no=assignment.attempt_no,
             focus_lost_count=1,
-            anomaly_score=0.6,
+            anomaly_score=0.4,
             event_type="gaze_offscreen",
             event_message="Student appears to be looking down."
         )  
     elif gaze_direction == "inconclusive":
-        timestamp = timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
-        cv2.imwrite(f"frame_logs/frame_gaze_inconclusive_{timestamp}.jpg", img)
-        StudentActivityLog.objects.create(
-            assignment=assignment,
-            attempt_no=assignment.attempt_no,
-            focus_lost_count=0,
-            anomaly_score=0.2,
-            event_type="gaze_unclear",
-            event_message="Could not determine eye direction, possibly due to glasses or lighting."
-        )
+        if log_event(user, assignment, assignment.attempt_no, "gaze_unclear", debounce_seconds=10):
+            timestamp = timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
+            cv2.imwrite(f"frame_logs/frame_gaze_inconclusive_{timestamp}.jpg", img)
+            StudentActivityLog.objects.create(
+                assignment=assignment,
+                attempt_no=assignment.attempt_no,
+                focus_lost_count=0,
+                anomaly_score=0.1,
+                event_type="gaze_unclear",
+                event_message="Could not determine eye direction, possibly due to glasses or lighting."
+            )
+            TempFaceEventState.objects.filter(
+                user=user,
+                assignment=assignment,
+                attempt_no=assignment.attempt_no,
+                event_type="gaze_unclear"
+            ).delete()
         
 
     if head_pose in ["down", "up", "tilted"]:
-        timestamp = timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
-        cv2.imwrite(f"frame_logs/frame_head_{head_pose}_{timestamp}.jpg", img)
-        anomaly = 0.6 if head_pose != "tilted" else 0.4
-        StudentActivityLog.objects.create(
-            assignment=assignment,
-            attempt_no=assignment.attempt_no,
-            focus_lost_count=1,
-            anomaly_score=anomaly,
-            event_type="head_pose_suspicious",
-            event_message=f"Student has suspicious head pose: {head_pose}."
-        )
+        if log_event(user, assignment, assignment.attempt_no, "head_pose_suspicious", debounce_seconds=5):
+            timestamp = timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
+            cv2.imwrite(f"frame_logs/frame_head_{head_pose}_{timestamp}.jpg", img)
+            anomaly = 0.5 if head_pose != "tilted" else 0.3
+            StudentActivityLog.objects.create(
+                assignment=assignment,
+                attempt_no=assignment.attempt_no,
+                focus_lost_count=1,
+                anomaly_score=anomaly,
+                event_type="head_pose_suspicious",
+                event_message=f"Student has suspicious head pose: {head_pose}."
+            )
+            TempFaceEventState.objects.filter(
+                user=user,
+                assignment=assignment,
+                attempt_no=assignment.attempt_no,
+                event_type="head_pose_suspicious"
+            ).delete()
         
 
 
     face_locations = face_recognition.face_locations(img_rgb)
     encodings = face_recognition.face_encodings(img_rgb)
 
-    if len(face_locations) == 0:
+    if len(face_locations) == 0 and mp_results and mp_results.multi_face_landmarks:
+        h, w, _ = img.shape
+        face_locations = [(0,w,h,0)]
+        encodings = face_recognition.face_encodings(img_rgb, known_face_locations=face_locations)
+
+    if len(encodings) == 0:
         # No face found
-        timestamp = timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
-        cv2.imwrite(f"frame_logs/frame_noface_{timestamp}.jpg", img)
-        StudentActivityLog.objects.create(
-            assignment=assignment,
-            attempt_no=assignment.attempt_no,
-            focus_lost_count=1,
-            anomaly_score=0.5,
-            event_type= "no_face_found",
-            event_message = "Detected no face"
-        )
+        if log_event(user, assignment,assignment.attempt_no,"no_face_found", debounce_seconds=10 ):
+            timestamp = timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
+            cv2.imwrite(f"frame_logs/frame_noface_{timestamp}.jpg", img)
+            StudentActivityLog.objects.create(
+                assignment=assignment,
+                attempt_no=assignment.attempt_no,
+                focus_lost_count=1,
+                anomaly_score=0.3,
+                event_type= "no_face_found",
+                event_message = "Detected no face"
+            )
+            TempFaceEventState.objects.filter(
+                user=user,
+                assignment=assignment,
+                attempt_no=assignment.attempt_no,
+                event_type="no_face_found"
+            ).delete()
         return JsonResponse({"error": "No face detected"}, status=200)
 
     if len(face_locations) > 1:
@@ -246,18 +327,25 @@ def live_face_check(request):
     uploaded_encoding = encodings[0]
     stored_encoding = pickle.loads(user.face_encoding)
 
-    match = face_recognition.compare_faces([stored_encoding], uploaded_encoding, tolerance=0.5)[0]
+    match = face_recognition.compare_faces([stored_encoding], uploaded_encoding, tolerance=0.65)[0]
     if not match:
-        timestamp = timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
-        cv2.imwrite(f"frame_logs/frame_missmatch_{timestamp}.jpg", img)
-        StudentActivityLog.objects.create(
-            assignment=assignment,
-            attempt_no=assignment.attempt_no,
-            focus_lost_count=1,
-            anomaly_score=0.9,
-            event_type="face_mismatch",
-            event_message="Detected a different person than the initial authenticated student.",
-        )
+        if log_event(user, assignment, assignment.attempt_no, "face_mismatch", debounce_seconds=10):
+            timestamp = timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
+            cv2.imwrite(f"frame_logs/frame_missmatch_{timestamp}.jpg", img)
+            StudentActivityLog.objects.create(
+                assignment=assignment,
+                attempt_no=assignment.attempt_no,
+                focus_lost_count=1,
+                anomaly_score=0.9,
+                event_type="face_mismatch",
+                event_message="Detected a different person than the initial authenticated student.",
+            )
+            TempFaceEventState.objects.filter(
+                user=user,
+                assignment=assignment,
+                attempt_no=assignment.attempt_no,
+                event_type="face_mismatch"
+            ).delete()
         return JsonResponse({"error": "Face mismatch"}, status=200)
 
     # all good

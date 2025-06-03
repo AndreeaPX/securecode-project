@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../../../api/axios";
 import useProctoring from "../hooks/useProctoring";
 import WebcamMonitor from "../hooks/WebcamMonitor";
+import MicrophoneMonitor from "../hooks/MicrophoneMonitor";
 import TestFaceCheck from "./StudentTestFaceAuth";
 import QuestionRenderer from "../components/questions/QuestionRenderer";
 import "../../../styles/TestPage.css";
@@ -28,6 +29,7 @@ export default function TestPage() {
   });
   const shouldStartCountdown = verified && test?.duration_minutes;
   const [submitting, setSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const shouldMonitor = verified && test?.has_ai_assistent;
   useUserActivityMonitor(shouldMonitor ? assignmentId : null);
@@ -118,6 +120,7 @@ export default function TestPage() {
  const submitTest = async () => {
   if (submitting) return;
   setSubmitting(true);
+  setIsSubmitted(true);
 
   const payload = {
     assignment_id: parseInt(assignmentId),
@@ -206,11 +209,16 @@ export default function TestPage() {
   if (!test) {
   return <p>Loading test...</p>;
   }
-
+console.log("Assignment ID:", assignmentId); 
  return (
   <div className="test-page">
-    {test?.has_ai_assistent && assignmentId && (
+    {!isSubmitted && test?.has_ai_assistent && assignmentId && (
       <WebcamMonitor assignmentId={assignmentId} currentQuestionId={currentQuestion?.id} />
+    )}
+    
+    {!isSubmitted && test?.has_ai_assistent && test?.allow_sound_analysis && assignmentId && (
+      <MicrophoneMonitor assignmentId={assignmentId } />
+      
     )}
     {/* Test Header */}
     <div className="test-header">

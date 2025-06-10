@@ -116,7 +116,7 @@ def detect_gaze_direction(img):
 
     if abs(roll) > 0.1:
         head_pose = "tilted"
-    elif pitch > 0.15:
+    elif pitch > 0.22:
         head_pose = "down"
     elif pitch < 0.05:
         head_pose = "up"

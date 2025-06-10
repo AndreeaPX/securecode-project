@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from django.core.mail import send_mail
 from django.utils import timezone
@@ -13,7 +13,7 @@ from .models.core import User, UserInvitation, Faculty, Specialization, Course, 
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 
 from .models.questions import Question, AnswerOption, QuestionAttachment
-from .models.tests import Test,TestQuestion,TestAssignment,StudentAnswer,StudentActivityLog, StudentActivityAnalysis
+from .models.tests import Test,TestQuestion,TestAssignment,StudentAnswer,StudentActivityLog, StudentActivityAnalysis, AudioAnalysis
 
 
 
@@ -266,6 +266,49 @@ class StudentActivityAnalysisAdmin(admin.ModelAdmin):
     def assignment_id_display(self, obj):
         return f"Assignment #{obj.assignment.id}"
     assignment_id_display.short_description = "Assignment"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+    
+from users.models.tests import TempFaceEventState
+
+@admin.register(TempFaceEventState)
+class TempFaceEventStateAdmin(admin.ModelAdmin):
+    list_display = ("user", "assignment", "attempt_no", "event_type", "first_seen", "last_seen")
+    list_filter = ("event_type", "last_seen")
+    search_fields = ("user__email", "assignment__id")
+    readonly_fields = [f.name for f in TempFaceEventState._meta.fields]
+    actions = ["delete_expired_events"]
+
+    def delete_expired_events(self, request, queryset):
+        threshold = timezone.now() - timedelta(minutes=30)
+        expired = TempFaceEventState.objects.filter(last_seen__lt=threshold)
+        count = expired.count()
+        expired.delete()
+        self.message_user(request, f"{count} all expired events were deleted.", level=messages.SUCCESS)
+
+    delete_expired_events.short_description = "Delete avents older than 30 minutes."
+
+    def has_add_permission(self, request):
+        return False
+
+
+@admin.register(AudioAnalysis)
+class AudioAnalysisAdmin(admin.ModelAdmin):
+    list_display = (
+        "assignment",
+        "attempt_no",
+        "voiced_ratio",
+        "voiced_seconds",
+        "mouth_open_no_voice_count",
+        "created_at"
+    )
+    list_filter = ("attempt_no",)
+    search_fields = ("assignment__id",)
+    readonly_fields = [f.name for f in AudioAnalysis._meta.fields]
 
     def has_add_permission(self, request):
         return False

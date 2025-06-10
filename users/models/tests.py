@@ -102,7 +102,7 @@ class TestAssignment(models.Model):
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     attempt_no = models.IntegerField(default=1)
-
+    label = models.BooleanField(null=True, blank=True)
     auto_score = models.FloatField(null=True, blank=True)
     manual_score = models.FloatField(null=True, blank=True)
     reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_tests")
@@ -163,3 +163,17 @@ class TempFaceEventState(models.Model):
 
     class Meta:
         unique_together = ("user", "assignment", "attempt_no", "event_type")
+
+class AudioAnalysis(models.Model):
+    assignment = models.ForeignKey(TestAssignment, on_delete=models.CASCADE, related_name="audio_analysis")
+    attempt_no = models.IntegerField(default=1)
+    voiced_ratio = models.FloatField()
+    voiced_seconds = models.FloatField()
+    mouth_open_no_voice_count = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("assignment", "attempt_no")
+
+    def __str__(self):
+        return f"Analysis for assignment {self.assignment.id}"

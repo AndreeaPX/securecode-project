@@ -24,7 +24,7 @@ from .views.student_view import StudentCoursesAPIView, StudentActiveTestsGrouped
 from .views.submit_view import SubmitAnswersView
 from .views.mouse_keyboard_view import mouse_keyboard_check
 from .views.audio_analysis import live_audio_check
-from .views.ai_view import test_lstm_sequence
+
 
 router = DefaultRouter()
 router.register(r'questions', QuestionViewApi, basename='questions')
@@ -49,7 +49,6 @@ urlpatterns = [
     path("dashboard/student-courses/", StudentCoursesAPIView.as_view(), name="student-dashboard-courses"),
     path("student/tests-by-course/", StudentActiveTestsGroupedByCourseAPIView.as_view(), name="student-tests-by-course"),
     path("test-assignments/<int:assignment_id>/questions/", AssignedTestQuestionsAPIView.as_view(), name="assigned-test-questions"),
-    path("ai/lstm-sequence/<int:assignment_id>/", test_lstm_sequence,name="test_lstm_sequence" ),
     path("submit-answers/", SubmitAnswersView.as_view(), name="submit-answers"),
     path('', include(router.urls)),
 ]

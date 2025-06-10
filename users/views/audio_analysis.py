@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from users.models.tests import TestAssignment, StudentActivityLog, TempFaceEventState
+from users.models.tests import TestAssignment, StudentActivityLog, TempFaceEventState, AudioAnalysis
 from scipy.signal import resample
 import soundfile as sf
 from django.db.models import Q
@@ -64,13 +64,12 @@ def convert_webm_to_wav(audio_bytes):
 
     return wav_bytes
 
-
 from django.db import transaction
 
 def log_event(user, assignment, attempt_no, event_type, debounce_seconds=10):
     now = timezone.now()
 
-    with transaction.atomic():  # AICI adaugi contextul necesar
+    with transaction.atomic():  
         try:
             event = TempFaceEventState.objects.select_for_update().get(
                 user=user,
@@ -79,7 +78,7 @@ def log_event(user, assignment, attempt_no, event_type, debounce_seconds=10):
                 event_type=event_type,
             )
             if now - event.first_seen > timedelta(seconds=debounce_seconds):
-                event.delete()
+                #event.delete()
                 return True
             else:
                 event.last_seen = now
@@ -175,8 +174,26 @@ def live_audio_check(request):
     except TestAssignment.DoesNotExist:
         return JsonResponse({"error": "Invalid assignment"}, status=404)
 
+    last_assignment_id = request.session.get("last_assignment_id")
+    if str(last_assignment_id) != str(assignment.id):
+        request.session["talk_time"] = 0
+        request.session["last_assignment_id"] = str(assignment.id)
+
     try:
         voiced_ratio, voiced_secs = analyze_voice(audio_bytes)
+        audio_entry, created = AudioAnalysis.objects.get_or_create(
+            assignment=assignment,
+            attempt_no = assignment.attempt_no,
+            defaults={
+                "voiced_ratio": voiced_ratio,
+                "voiced_seconds": voiced_secs
+            }    
+        )
+
+        if not created:
+            audio_entry.voiced_ratio=voiced_ratio
+            audio_entry.voiced_seconds = voiced_secs
+            audio_entry.save(update_fields=["voiced_ratio","voiced_seconds"])
     except Exception as e:
         print(f"[ERROR] Failed to analyze voice: {e}")
         return JsonResponse({"error": "Audio analysis failed"}, status=200)
@@ -185,13 +202,25 @@ def live_audio_check(request):
     total_talk_time += voiced_secs
     request.session["talk_time"] = total_talk_time
 
-    mouth_open = get_mouth_state(user, assignment)
-    print(f"[DEBUG] Mouth open: {mouth_open}, Voiced ratio: {voiced_ratio:.2f}, Voiced secs: {voiced_secs:.2f}, Total talk: {total_talk_time:.2f}")
+    mouth_open_recent = TempFaceEventState.objects.filter(
+    user=user,
+    assignment=assignment,
+    attempt_no=assignment.attempt_no,
+    event_type__in=["mouth_open", "mouth_closed"],
+    last_seen__gte=timezone.now() - timedelta(seconds=5)
+    ).order_by('-last_seen').first()
 
-    if mouth_open is None:
+    voice_no_mouth_logged = False
+
+    if not mouth_open_recent:
         print("[WARN] No mouth state available for current user – skipping mouth detection check.")
-
-    elif voiced_ratio > 0.1 and mouth_open is False:
+    elif voiced_ratio > 0.2 and voiced_secs > 1.0 and mouth_open_recent.event_type != "mouth_open":
+        try:
+            analysis = AudioAnalysis.objects.get(assignment=assignment, attempt_no=assignment.attempt_no)
+            analysis.mouth_open_no_voice_count += 1
+            analysis.save(update_fields=["mouth_open_no_voice_count"])
+        except AudioAnalysis.DoesNotExist:
+            pass
         if log_event(user, assignment, assignment.attempt_no, "voice_no_mouth", debounce_seconds=10):
             StudentActivityLog.objects.create(
                 assignment=assignment,
@@ -201,6 +230,7 @@ def live_audio_check(request):
                 event_type="voice_no_mouth",
                 event_message="Voice detected but student's mouth appears closed."
             )
+            voice_no_mouth_logged = True
 
     if total_talk_time >= 45:
         if log_event(user, assignment, assignment.attempt_no, "too_much_talking", debounce_seconds=20):
@@ -214,7 +244,7 @@ def live_audio_check(request):
             )
             request.session["talk_time"] = 0 
 
-    if voiced_ratio > 0.05 and voiced_secs > 0.5:
+    if not voice_no_mouth_logged and voiced_ratio > 0.05 and voiced_secs > 0.5:
         if log_event(user, assignment, assignment.attempt_no, "voice_detected", debounce_seconds=20):
             StudentActivityLog.objects.create(
                 assignment=assignment,

@@ -47,7 +47,7 @@ export default function MicMonitor({ assignmentId }) {
           })
         };
 
-        //mediaRecorderRef.current.start();
+        mediaRecorderRef.current.start();
 
         intervalRef.current = setInterval(() => {
           if (mediaRecorderRef.current?.state === "recording") {

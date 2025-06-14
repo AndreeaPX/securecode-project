@@ -183,7 +183,7 @@ def live_face_check(request):
             assignment=assignment,
             attempt_no=assignment.attempt_no,
             focus_lost_count = 0,
-            anomaly_score = 0.7,
+            anomaly_score = 1.0,
             event_type="mobile_detected",
             event_message="Mobile phone detected in camera frame."
         )
@@ -218,7 +218,7 @@ def live_face_check(request):
                 assignment = assignment,
                 attempt_no=assignment.attempt_no,
                 focus_lost_count = 1,
-                anomaly_score = 0.3,
+                anomaly_score = 0.2,
                 event_type="gaze_offscreen",
                 event_message=f"Student appears to be looking {gaze_direction}."
             )
@@ -263,7 +263,7 @@ def live_face_check(request):
         if log_event(user, assignment, assignment.attempt_no, "head_pose_suspicious", debounce_seconds=5):
             timestamp = timezone.now().strftime("%Y-%m-%d_%H-%M-%S")
             cv2.imwrite(f"frame_logs/frame_head_{head_pose}_{timestamp}.jpg", img)
-            anomaly = 0.5 if head_pose != "tilted" else 0.3
+            anomaly = 0.4 if head_pose != "tilted" else 0.2
             StudentActivityLog.objects.create(
                 assignment=assignment,
                 attempt_no=assignment.attempt_no,
@@ -318,7 +318,7 @@ def live_face_check(request):
             assignment=assignment,
             attempt_no=assignment.attempt_no,
             focus_lost_count=1,
-            anomaly_score=1.0,
+            anomaly_score=0.5,
             event_type="multiple_faces",
             event_message="Detected more than one face in frame"
         )
@@ -336,7 +336,7 @@ def live_face_check(request):
                 assignment=assignment,
                 attempt_no=assignment.attempt_no,
                 focus_lost_count=1,
-                anomaly_score=0.9,
+                anomaly_score=0.5,
                 event_type="face_mismatch",
                 event_message="Detected a different person than the initial authenticated student.",
             )

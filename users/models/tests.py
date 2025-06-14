@@ -105,7 +105,17 @@ class TestAssignment(models.Model):
     label = models.BooleanField(null=True, blank=True)
     auto_score = models.FloatField(null=True, blank=True)
     manual_score = models.FloatField(null=True, blank=True)
+
     reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_tests")
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_comment = models.TextField(blank=True, default="")
+    final_verdict = models.BooleanField(null=True, blank=True)
+
+    ai_cheating = models.BooleanField(null=True)  # What the model thinks
+    ai_probability = models.FloatField(null=True, blank=True)
+    ai_details_json = models.JSONField(null=True, blank=True)
+    ai_evaluated_at = models.DateTimeField(null=True, blank=True)
+    rule_triggered = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.student.email} - {self.test.name} (Attempt {self.attempt_no})"

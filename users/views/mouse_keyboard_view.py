@@ -19,13 +19,16 @@ def analyze_assignment_logs(assignment):
     delays = [d for d in delays if d is not None]
     avg_delay = sum(delays) / len(delays) if delays else None
 
-    is_sus = (
-        esc > 0 or
-        second_screen > 1 or
-        tab_switches > 2 or
-        window_blurs > 3 or
-        (avg_delay is not None and avg_delay < 50)
-    )
+    if assignment.test.use_proctoring:
+        is_sus = (
+            esc > 2 or
+            second_screen > 2 or
+            tab_switches > 2 or
+            window_blurs > 2 or
+            (avg_delay is not None and avg_delay < 50)
+        )
+    else:
+        is_sus = False
 
     analysis, _ = StudentActivityAnalysis.objects.update_or_create(
         assignment=assignment,

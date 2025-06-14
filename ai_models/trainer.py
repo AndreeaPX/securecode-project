@@ -9,6 +9,8 @@ from users.models.tests import TestAssignment
 from ai_models.features import extract_features_for_assignment
 import shutil
 from datetime import datetime
+from imblearn.over_sampling import SMOTE
+
 
 MODEL_PATH = "ai_models/model.pkl"
 
@@ -19,11 +21,38 @@ def get_labeled_data():
 
     for assignment in assignments:
         features = extract_features_for_assignment(assignment)
+
+        if "total_chars" not in features:
+            from users.models.tests import StudentAnswer
+            total_chars = sum(len(a.answer_text or "") for a in StudentAnswer.objects.filter(assignment=assignment))
+            features["total_chars"] = total_chars
+
+
+        # Derive the same flags the predictor expects
+        features["mobile_detected_flag"] = int(features.get("mobile_detected_count", 0) > 0)
+        features["key_presses_per_min"] = features.get("key_press_count", 0) / max(
+            features.get("actual_test_time_seconds", 60) / 60,
+            1,
+        )
+
+        features["typing_speed_suspect"] = int(
+            features.get("chars_per_minute", 0) > 500
+            and features.get("key_press_count", 0) < 10
+        )
+        features["total_gaze_offscreen"] = (
+            features.get("gaze_left_count", 0)
+            + features.get("gaze_right_count", 0)
+            + features.get("gaze_down_count", 0)
+        )
+
+
+
         if features:
             data.append(features)
             labels.append(int(not assignment.label))  # 1 = cheating, 0 = legit
 
     return pd.DataFrame(data), pd.Series(labels)
+
 
 def train_and_save_model():
     X, y = get_labeled_data()
@@ -33,23 +62,33 @@ def train_and_save_model():
         return
 
     # --- Clean-up & Transformations ---
-    X.drop(columns=["voiced_ratio"], errors='ignore', inplace=True)
+
+    
+    X["key_presses_per_min"] = X["key_presses_per_min"].clip(upper=500)
+    X["chars_per_minute"] = X["chars_per_minute"].clip(upper=500)
     X["voiced_seconds"] = X["voiced_seconds"].clip(upper=20)
     X["focus_lost_total"] = (X["focus_lost_total"] > 1).astype(int)
-    X["mobile_detected_flag"] = (X["mobile_detected_count"] > 0).astype(int)
-    X.drop(columns=["mobile_detected_count"], inplace=True)
 
-    # --- Derived Features ---
-    X["key_presses_per_min"] = X["key_press_count"] / (X["actual_test_time_seconds"] / 60)
-    X["typing_speed_suspect"] = ((X["chars_per_minute"] > 500) & (X["key_press_count"] < 10)).astype(int)
-    X["total_gaze_offscreen"] = X["gaze_left_count"] + X["gaze_right_count"] + X["gaze_down_count"]
 
-    # Drop redundant/noisy cols that might be missing or unhelpful
-    X.drop(columns=[
-        "gaze_left_count", "gaze_right_count", "gaze_down_count",
-        "gaze_unclear_count", "chars_per_second", "avg_key_delay",
-        "voice_detected_count", "mouth_open_no_voice_count"  # explicit nuke of unstable cols
-    ], errors='ignore', inplace=True)
+    rule_violations = (
+    (X.get("mobile_detected_count", 0) > 0)
+    | (X.get("multiple_faces_detected", 0) >= 2)
+    | (X.get("face_mismatch_count", 0) >= 2)
+    | ((X.get("chars_per_minute", 0) > 700) & (X.get("key_press_count", 0) < 10))
+    | ((X.get("key_press_count", 0) == 0) & (X.get("total_chars", 0) > 0))
+    | ((X.get("copy_paste_events", 0) > 3) & (X.get("avg_key_delay", 100) < 30))
+    | (
+        (X.get("voiced_seconds", 0) > 30)
+        & (X.get("mouth_open_no_voice_count", 0) > 2)
+    )
+    )
+
+    X = X[~rule_violations]
+    y = y.loc[X.index]
+
+    smote = SMOTE(random_state=42)
+    X, y = smote.fit_resample(X, y)
+
 
     # --- Train/Test Split ---
     X_train, X_test, y_train, y_test = train_test_split(
@@ -80,14 +119,14 @@ def train_and_save_model():
 
     # --- Feature Importance ---
     imp = pd.Series(model.feature_importances_, index=X.columns)
-    print("\n🔥 Top Features:")
+    print("\nTop Features:")
     print(imp.sort_values(ascending=False).head(10))
 
     # --- Evaluation ---
     y_pred = model.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
-    print(f"\n✅ Accuracy: {round(acc * 100, 2)}%")
-    print("\n📊 Classification Report:")
+    print(f"\nAccuracy: {round(acc * 100, 2)}%")
+    print("\nClassification Report:")
     print(classification_report(y_test, y_pred, target_names=["Legit", "Cheating"]))
 
     cm = confusion_matrix(y_test, y_pred)

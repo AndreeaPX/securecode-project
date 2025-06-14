@@ -20,18 +20,19 @@ def create_balanced_training_batch(student, test, num_per_type=10):
         )
 
     def add_analysis(a, **kwargs):
+        # Infer flags based on logs or override via kwargs
         StudentActivityAnalysis.objects.create(
             assignment=a,
             attempt_no=1,
             esc_pressed=kwargs.get("esc", 0),
             second_screen_events=kwargs.get("screen", 0),
-            tab_switches=random.randint(1, 3),
-            window_blurs=random.randint(0, 2),
+            tab_switches=kwargs.get("tabs", random.randint(0, 3)),
+            window_blurs=kwargs.get("blur", random.randint(0, 2)),
             copy_paste_events=kwargs.get("paste", 0),
             total_key_presses=kwargs.get("keys", 150),
             average_key_delay=kwargs.get("delay", 50),
             total_focus_lost=kwargs.get("focus", 0),
-            is_suspicious=kwargs.get("sus", False)
+            is_suspicious=kwargs.get("sus", False),
         )
 
     def add_audio(a, voiced_ratio, mouth_silent):
@@ -48,7 +49,7 @@ def create_balanced_training_batch(student, test, num_per_type=10):
             StudentActivityLog.objects.create(
                 assignment=a,
                 attempt_no=1,
-                focus_lost_count=1,
+                focus_lost_count=1 if ev in ["window_blur", "tab_hidden", "second_screen"] else 0,
                 anomaly_score=1.0,
                 event_type=ev,
                 event_message=f"Simulated event: {ev.replace('_', ' ')}"
@@ -65,30 +66,30 @@ def create_balanced_training_batch(student, test, num_per_type=10):
             )
 
     for _ in range(num_per_type):
-        # 1. Legit no issues
+        # 1. Legit – clean, long answers
         a = create_assignment(False)
         add_analysis(a)
         add_audio(a, 0.01, 0)
         add_logs(a, [])
         add_answers(a)
 
-        # 2. False positive (some noise)
+        # 2. Legit – noisy but still clean
         a = create_assignment(False)
-        add_analysis(a, esc=1, screen=1, paste=2, delay=25, keys=80, focus=1, sus=True)
-        add_audio(a, 0.2, 1)
-        add_logs(a, ["gaze_offscreen"])
+        add_analysis(a, esc=1, screen=1, paste=1, delay=40, keys=100, focus=1, sus=False)
+        add_audio(a, 0.2, 0)
+        add_logs(a, ["window_blur", "tab_hidden"])
         add_answers(a)
 
-        # 3. True cheating
+        # 3. Cheating – high-risk signals (real cheating)
         a = create_assignment(True)
-        add_analysis(a, esc=3, screen=2, paste=6, delay=10, keys=15, focus=3, sus=True)
-        add_audio(a, 0.5, 3)
-        add_logs(a, ["mobile_detected", "face_mismatch", "multiple_faces"])
-        add_answers(a)
+        add_analysis(a, esc=3, screen=2, paste=4, delay=15, keys=25, focus=3, sus=True)
+        add_audio(a, 0.6, 2)
+        add_logs(a, ["mobile_detected", "face_mismatch", "multiple_faces", "copy_event"])
+        add_answers(a, short=True)
 
-        # 4. Edge cheating (could slip through AI)
+        # 4. Cheating – sneaky, light indicators
         a = create_assignment(True)
-        add_analysis(a, esc=0, screen=0, paste=4, delay=35, keys=300, focus=0, sus=True)
-        add_audio(a, 0.4, 0)
-        add_logs(a, ["head_pose_suspicious"])
-        add_answers(a)
+        add_analysis(a, esc=0, screen=0, paste=3, delay=30, keys=300, focus=1, sus=True)
+        add_audio(a, 0.3, 0)
+        add_logs(a, ["tab_hidden"])
+        add_answers(a, short=True)

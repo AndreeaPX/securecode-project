@@ -1,4 +1,5 @@
-from users.models.tests import StudentActivityLog, StudentActivityAnalysis, AudioAnalysis, StudentAnswer
+from users.models.tests import StudentActivityLog, StudentActivityAnalysis, AudioAnalysis, StudentAnswer, TestQuestion
+from users.models.questions import Question
 from django.utils import timezone
 from datetime import timedelta
 
@@ -14,6 +15,7 @@ def is_humanly_possible_writing(chars_per_minute, key_press_count, total_chars):
 def extract_features_for_assignment(assignment):
     attempt_no = assignment.attempt_no
     test = assignment.test
+    use_proctoring = test.use_proctoring
 
     # ======================= AUDIO =======================
     if test.allow_sound_analysis:
@@ -32,17 +34,19 @@ def extract_features_for_assignment(assignment):
         too_much_talking_count = 0
 
     # ======================= CAMERA =======================
+    
     camera_logs = StudentActivityLog.objects.filter(assignment=assignment, attempt_no=attempt_no)
 
     multiple_faces_detected = camera_logs.filter(event_type="multiple_faces").count()
     face_mismatch_count = camera_logs.filter(event_type="face_mismatch").count()
     no_face_detected_count = camera_logs.filter(event_type="no_face_found").count()
     mobile_detected_count = camera_logs.filter(event_type="mobile_detected").count()
-
     gaze_left_count = camera_logs.filter(event_type="gaze_offscreen", event_message__icontains="left").count()
     gaze_right_count = camera_logs.filter(event_type="gaze_offscreen", event_message__icontains="right").count()
-    gaze_down_count = camera_logs.filter(event_type="gaze_offscreen", event_message__icontains="down").count()
-
+    if use_proctoring:
+        gaze_down_count = camera_logs.filter(event_type="gaze_offscreen", event_message__icontains="down").count()
+    else:
+        gaze_down_count = 0
 
     # ======================= KEYBOARD & FOCUS =======================
     if test.has_ai_assistent:
@@ -73,7 +77,12 @@ def extract_features_for_assignment(assignment):
     answers = StudentAnswer.objects.filter(assignment=assignment)
     total_chars = sum(len(a.answer_text or "") for a in answers)
 
-    if assignment.started_at and assignment.finished_at:
+    question_ids = TestQuestion.objects.filter(test=test).values_list("question_id", flat=True)
+    questions = Question.objects.filter(id__in=question_ids)
+    q_types = questions.values_list("type", flat=True)
+    writing_required = any(t in ("open", "code") for t in q_types)
+
+    if assignment.started_at and assignment.finished_at and assignment.finished_at > assignment.started_at:
         actual_time = (assignment.finished_at - assignment.started_at).total_seconds()
     else:
         actual_time = (assignment.test.duration_minutes or 30) * 60
@@ -105,9 +114,11 @@ def extract_features_for_assignment(assignment):
         "key_press_count": key_presses,
         "avg_key_delay": avg_delay,
         "focus_lost_total": focus_lost,
+        "total_chars": total_chars,
 
         # CONTENT
         "actual_test_time_seconds": round(actual_time, 2),
         "chars_per_minute": round(chars_per_minute, 2),
         "is_impossible_writing_speed": impossible_writing,
+        "writing_required": writing_required,
     }

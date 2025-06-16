@@ -20,10 +20,10 @@ def load_model(path=None):
 def predict_assignment(assignment, model_path=None, features=None):
     model = load_model(model_path)
 
-    # Use passed-in features or extract fresh ones
+
     features_dict = features or extract_features_for_assignment(assignment)
 
-    # === Inject writing_required flag ===
+
     try:
         writing_required = assignment.test.test_questions.filter(
             question__type__in=["code", "open"]
@@ -33,13 +33,11 @@ def predict_assignment(assignment, model_path=None, features=None):
         features_dict["writing_required"] = 0  # fallback in case of model/test mismatch
 
 
-    # === FIX: ensure mobile_detected_flag reflects actual count ===
     if "mobile_detected_count" in features_dict:
         features_dict["mobile_detected_flag"] = int(features_dict["mobile_detected_count"] > 0)
     else:
         features_dict["mobile_detected_flag"] = 0
 
-    # === FIX: create all derived fields expected by model ===
     features_dict["key_presses_per_min"] = features_dict.get("key_press_count", 0) / max(features_dict.get("actual_test_time_seconds", 60) / 60, 1)
     features_dict["typing_speed_suspect"] = int(
         features_dict.get("chars_per_minute", 0) > 500 and features_dict.get("key_press_count", 0) < 10
@@ -50,20 +48,17 @@ def predict_assignment(assignment, model_path=None, features=None):
         features_dict.get("gaze_down_count", 0)
     )
 
-    # Clean to model-known features
     expected_features = model.get_booster().feature_names
     cleaned_features = {k: features_dict.get(k, 0) for k in expected_features}
 
     X = pd.DataFrame([cleaned_features], columns=expected_features)
     X.fillna(0, inplace=True)
 
-    # SHAP
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X)
     shap_impact = list(zip(X.columns, shap_values[0]))
     top_shap_features = sorted(shap_impact, key=lambda x: abs(x[1]), reverse=True)[:5]
 
-    # Predict
     prediction = model.predict(X)[0]
     proba = model.predict_proba(X)[0][1]
 

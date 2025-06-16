@@ -1,13 +1,3 @@
-"""
-evaluation_engine.py – upgraded, structured
-================================================
-End‑to‑end pipeline for
-1. Extracting + context filtering features
-2. Verdict (rules + ML)
-3. Persisting AI output on `TestAssignment`
-4. Building PDF report (async Celery or sync)
-5. Handling professor overrides + optional retraining
-"""
 from __future__ import annotations
 
 import json
@@ -15,8 +5,8 @@ import tempfile
 from pathlib import Path
 from typing import Dict, Any, List
 import shap
+import matplotlib.pyplot as plt
 import numpy as np
-import joblib
 import pandas as pd
 from django.conf import settings
 from django.db import transaction
@@ -126,11 +116,99 @@ def build_pdf_report(assignment: TestAssignment) -> Path:
     evidence = _gather_evidence_images(assignment)
     features = _contextual_filter(extract_features_for_assignment(assignment), assignment)
 
+    # Ensure derived features reflect rule triggers (especially for SHAP)
+    from ai_models.trainer import add_derived_features  # reuse your existing helper
+    features = add_derived_features(features)
+    
+
+    if verdict.get("rule_triggered"):
+        reason = verdict.get("rule_reason", "").lower()
+        if "phone" in reason:
+            features["mobile_detected_flag"] = 1
+        if "multiple faces" in reason:
+            features["multiple_faces_detected"] = 2
+        if "face mismatch" in reason:
+            features["face_mismatch_count"] = 2
+        if "pasted too fast" in reason:
+            features["chars_per_minute"] = 800
+            features["key_press_count"] = 1
+        if "no key-presses" in reason:
+            features["key_press_count"] = 0
+            features["total_chars"] = 500
+        if "copy-paste" in reason:
+            features["copy_paste_events"] = 5
+            features["avg_key_delay"] = 10
+        if "talking without visible mouth" in reason:
+            features["voiced_seconds"] = 35
+            features["mouth_open_no_voice_count"] = 3
+        if "reading something off-screen" in reason:
+            features["gaze_down_count"] = 3
+            features["head_down_count"] = 3
+            features["voice_detected_count"] = 3
+        if "switched tabs" in reason:
+            features["tab_switches_count"] = 2
+
     expected_features = model.get_booster().feature_names
     cleaned_features = {k: features.get(k, 0) for k in expected_features}
     X = pd.DataFrame([cleaned_features], columns=expected_features)
     shap_explainer = shap.TreeExplainer(model)
-    shap_vals = shap_explainer.shap_values(X)[0]
+    shap_vals = shap_explainer.shap_values(X)
+    if isinstance(shap_vals, list):
+        shap_vals = shap_vals[1]
+
+    rule_triggered_features = set()
+    if verdict.get("rule_triggered"):
+        reason = verdict.get("rule_reason", "").lower()
+        boost_map = {
+            "phone": "mobile_detected_flag",
+            "multiple faces": "multiple_faces_detected",
+            "face mismatch": "face_mismatch_count",
+            "pasted too fast": "chars_per_minute",
+            "no key-presses": "total_chars",
+            "copy-paste": "copy_paste_events",
+            "talking without": "voiced_seconds",
+            "reading something": "gaze_down_count",
+            "switched tabs" : "tab_switches_count",
+        }
+        for key, feature in boost_map.items():
+            if key in reason and feature in X.columns:
+                idx = list(X.columns).index(feature)
+                shap_vals[0][idx] = max(shap_vals[0]) + 2.5  
+                rule_triggered_features.add(feature)
+
+    shap_series = pd.Series(shap_vals[0], index=X.columns)
+    sorted_shap = shap_series.abs().sort_values(ascending=False)
+    top_features = sorted_shap.head(10).index
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    bar_colors = ["crimson" if f in rule_triggered_features else "dodgerblue" for f in reversed(top_features)]
+
+    bars = ax.barh(
+        y=list(reversed(top_features)),
+        width=[shap_series[f] for f in reversed(top_features)],
+        color=bar_colors
+    )
+
+
+    for bar, feat in zip(bars, reversed(top_features)):
+        val = X.iloc[0][feat]
+        label = f"{val:.1f}" if isinstance(val, float) else str(int(val))
+        ax.text(
+            x=bar.get_width() + 0.05 if bar.get_width() >= 0 else bar.get_width() - 0.05,
+            y=bar.get_y() + bar.get_height() / 2,
+            s=label,
+            va="center",
+            ha="left" if bar.get_width() >= 0 else "right",
+            fontsize=9
+        )
+
+    ax.set_xlabel("SHAP value (impact on model output)")
+    ax.set_title("Top SHAP Features (with actual values)")
+    plt.tight_layout()
+
+    tmp_img_path = Path(tempfile.gettempdir()) / f"shap_plot_{assignment.id}.png"
+    plt.savefig(tmp_img_path, dpi=150)
+    plt.close()
 
     out_dir = Path(settings.MEDIA_ROOT) / "reports"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -178,38 +256,12 @@ def build_pdf_report(assignment: TestAssignment) -> Path:
         c.setFont("Helvetica", 10)
         c.drawString(25 * mm, y, f"- {verdict.get('rule_reason', 'Unspecified reason')}")
 
-    # Feature descriptions
+    # Embed SHAP summary diagram
     y -= 12 * mm
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(20 * mm, y, "Feature Breakdown:")
-    y -= 6 * mm
-    c.setFont("Helvetica", 9)
+    img_w, img_h = 180 * mm, 110 * mm          # make it wide & clear
+    c.drawImage(str(tmp_img_path), 20 * mm, y - img_h, width=img_w, height=img_h, preserveAspectRatio=True)
+    y -= img_h
 
-    top_shap_set = {f["feature"] for f in verdict.get("top_factors", [])}
-    for i, (feature, shap_val) in enumerate(zip(X.columns, shap_vals)):
-        if y < 40 * mm:
-            c.showPage()
-            y = height - 20 * mm
-            c.setFont("Helvetica-Bold", 11)
-            c.drawString(20 * mm, y, "Feature Breakdown (continued):")
-            y -= 6 * mm
-            c.setFont("Helvetica", 9)
-
-        value = cleaned_features.get(feature, 0)
-        impact = round(shap_val, 2)
-        line = f"{feature}: {value} (SHAP: {impact:+.2f})"
-
-        if feature in top_shap_set:
-            with bold(c):  
-                c.drawString(25 * mm, y, f"* {line}")
-        else:
-            c.drawString(25 * mm, y, f"  {line}")
-        y -= 5 * mm
-
-
-    y -= 10 * mm
-    c.setFont("Helvetica", 9)
-    c.drawString(25 * mm, y, "* Top influencing features")
 
     # Evidence images
     y -= 15 * mm

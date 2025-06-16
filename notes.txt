@@ -13,5 +13,8 @@ Goal	Command
 🔍 See invitations	SELECT * FROM users_userinvitation;
 🔍 Exit psql	\q
 
+from ai_models.trainer import train_and_save_model
+train_and_save_model()
+
 
 QJW67L77D76VPLKCBE8EN5LX

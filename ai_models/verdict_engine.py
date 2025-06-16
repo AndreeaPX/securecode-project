@@ -24,13 +24,13 @@ def apply_rules(features, test_has_proctoring=False):
 
     # --- Proctoring-only rules ----------------------------------------
     if test_has_proctoring:
-        if features.get("esc_pressed_count", 0) >= 2:
+        if features.get("esc_pressed_count", 0) > 2:
             return True, "Pressed ESC 2+ times"
-        if features.get("second_screen_events", 0) >= 2:
+        if features.get("second_screen_events", 0) > 2:
             return True, "Used second screen 2+ times"
-        if features.get("focus_lost_total", 0) >= 2:
+        if features.get("focus_lost_total", 0) > 2:
             return True, "Test lost focus 2+ times"
-        if features.get("tab_switches_count", 0) >= 2:
+        if features.get("tab_switches_count", 0) > 2:
             return True, "Switched tabs 2+ times"
         
         # voice-only based flag (now stricter, requires *multiple signs*)
@@ -63,8 +63,9 @@ def get_verdict_for_assignment(assignment, features=None):
         }
 
     features = features or extract_features_for_assignment(assignment)
-
-    # 🚨 Apply hard rules first — these override AI completely
+    duration = features.get("actual_test_time_seconds", 600)
+    if features.get("voiced_seconds",0) < (0.5 * duration):
+        features["voiced_seconds"] = 0
     cheating, reason = apply_rules(features, test_has_proctoring=test.use_proctoring)
     if cheating:
         return {
@@ -73,13 +74,12 @@ def get_verdict_for_assignment(assignment, features=None):
             "reason": f"Rule triggered: {reason}",
             "rule_triggered": True,
             "rule_reason": reason,
-            "top_factors": []  # optional SHAP override if needed
+            "top_factors": []  
         }
 
-    # 🤖 If no rules triggered, fall back to AI model
+
     prediction = predict_assignment(assignment, features=features)
     proba = prediction["probability"]
-    # 🚫 Voice-only cheating override — if only voice is flagged but no other red flags
     if prediction["cheating"] and features.get("voiced_seconds", 0) > 10:
         voice_only = all(
             features.get(k, 0) == 0

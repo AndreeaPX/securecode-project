@@ -63,11 +63,13 @@ def _json_safe(o):
     return o
 
 def evaluate_assignment(assignment: TestAssignment) -> Dict[str, Any]:
+    if not assignment.test.has_ai_assistent:
+        return {"skipped": True, "reason": "AI assistant not enabled for this test."}
     raw = extract_features_for_assignment(assignment)
     ctx = _contextual_filter(raw, assignment)
     verdict = get_verdict_for_assignment(assignment, features=ctx)
     assignment.ai_cheating = verdict["cheating"]
-    assignment.ai_probability = verdict.get("probability")
+    assignment.ai_probability = 1.0 if verdict.get("rule_triggered") else verdict.get("probability")
     assignment.rule_triggered = verdict.get("rule_triggered", False)
     assignment.ai_details_json = json.dumps(_json_safe(verdict))
     assignment.ai_evaluated_at = timezone.now()
@@ -94,18 +96,6 @@ def apply_professor_verdict(assignment: TestAssignment, professor_verdict: bool,
             else:
                 train_and_save_model()
 
-_FEATURE_DESC = {
-    "mobile_detected_flag": "Phone detected by camera",
-    "tab_switches_count": "Switched tabs multiple times",
-    "multiple_faces_detected": "Multiple faces visible",
-    "copy_paste_events": "Frequent copy-paste activity",
-    "key_press_count": "Very low typing effort",
-    "typing_speed_suspect": "Typing speed abnormal",
-    "total_gaze_offscreen": "Looking away from screen repeatedly",
-    "window_blur_count": "Lost focus on exam tab",
-    "too_much_talking_count": "Excessive talking detected",
-}
-
 def build_pdf_report(assignment: TestAssignment) -> Path:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
@@ -116,8 +106,8 @@ def build_pdf_report(assignment: TestAssignment) -> Path:
     evidence = _gather_evidence_images(assignment)
     features = _contextual_filter(extract_features_for_assignment(assignment), assignment)
 
-    # Ensure derived features reflect rule triggers (especially for SHAP)
-    from ai_models.trainer import add_derived_features  # reuse your existing helper
+
+    from ai_models.trainer import add_derived_features 
     features = add_derived_features(features)
     
 
@@ -151,6 +141,9 @@ def build_pdf_report(assignment: TestAssignment) -> Path:
     expected_features = model.get_booster().feature_names
     cleaned_features = {k: features.get(k, 0) for k in expected_features}
     X = pd.DataFrame([cleaned_features], columns=expected_features)
+
+    X = X.apply(pd.to_numeric, errors="coerce").fillna(0).infer_objects(copy=False)
+
     shap_explainer = shap.TreeExplainer(model)
     shap_vals = shap_explainer.shap_values(X)
     if isinstance(shap_vals, list):
@@ -219,7 +212,8 @@ def build_pdf_report(assignment: TestAssignment) -> Path:
     # Metadata
     student_name = f"{assignment.student.first_name} {assignment.student.last_name}".strip() or assignment.student.email
     verdict_txt = "CHEATING" if verdict.get("cheating") else "NOT CHEATING"
-    confidence = f"{verdict.get('probability', 0) * 100:.1f}%"
+    confidence = "100.0%" if verdict.get("rule_triggered") else f"{verdict.get('probability', 0) * 100:.1f}%"
+
 
     y = height - 20 * mm
     c.setFont("Helvetica-Bold", 16)
@@ -258,7 +252,7 @@ def build_pdf_report(assignment: TestAssignment) -> Path:
 
     # Embed SHAP summary diagram
     y -= 12 * mm
-    img_w, img_h = 180 * mm, 110 * mm          # make it wide & clear
+    img_w, img_h = 180 * mm, 110 * mm  
     c.drawImage(str(tmp_img_path), 20 * mm, y - img_h, width=img_w, height=img_h, preserveAspectRatio=True)
     y -= img_h
 
@@ -274,6 +268,10 @@ def build_pdf_report(assignment: TestAssignment) -> Path:
 
     c.showPage()
     c.save()
+
+    assignment.report_pdf.name = f"reports/assignment_{assignment.id}.pdf"
+    assignment.save(update_fields=["report_pdf"])
+
     return pdf_path
 
 

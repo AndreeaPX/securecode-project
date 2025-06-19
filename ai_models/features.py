@@ -37,16 +37,52 @@ def extract_features_for_assignment(assignment):
     
     camera_logs = StudentActivityLog.objects.filter(assignment=assignment, attempt_no=attempt_no)
 
+    if not camera_logs.exists():
+        # fallback to latest available attempt if current has no logs
+        latest_attempt = (
+            StudentActivityLog.objects.filter(assignment=assignment)
+            .order_by('-attempt_no')
+            .values_list('attempt_no', flat=True)
+            .first()
+        )
+        if latest_attempt is not None:
+            camera_logs = StudentActivityLog.objects.filter(assignment=assignment, attempt_no=latest_attempt)
+
+
     multiple_faces_detected = camera_logs.filter(event_type="multiple_faces").count()
     face_mismatch_count = camera_logs.filter(event_type="face_mismatch").count()
     no_face_detected_count = camera_logs.filter(event_type="no_face_found").count()
     mobile_detected_count = camera_logs.filter(event_type="mobile_detected").count()
     gaze_left_count = camera_logs.filter(event_type="gaze_offscreen", event_message__icontains="left").count()
+    print(gaze_left_count)
     gaze_right_count = camera_logs.filter(event_type="gaze_offscreen", event_message__icontains="right").count()
     if use_proctoring:
         gaze_down_count = camera_logs.filter(event_type="gaze_offscreen", event_message__icontains="down").count()
     else:
         gaze_down_count = 0
+    
+    gaze_offscreen_all = camera_logs.filter(event_type="gaze_offscreen").count()
+    head_down_count = camera_logs.filter(event_type="head_pose_suspicious").count()
+    total_gaze_offscreen = gaze_offscreen_all + head_down_count
+
+    from django.db.models import Q
+
+    gaze_logs = camera_logs.filter(Q(event_type="gaze_offscreen") | Q(event_type="head_pose_suspicious")).order_by("timestamp")
+
+    offscreen_seconds = 0.0
+    prev_time = None
+    MAX_INTERVAL = 3  # seconds
+
+    for log in gaze_logs:
+        if prev_time:
+            delta = (log.timestamp - prev_time).total_seconds()
+            if delta <= MAX_INTERVAL:
+                offscreen_seconds += delta
+            else:
+                offscreen_seconds += 1
+        else:
+            offscreen_seconds += 1
+        prev_time = log.timestamp
 
     # ======================= KEYBOARD & FOCUS =======================
     if test.has_ai_assistent:
@@ -104,6 +140,9 @@ def extract_features_for_assignment(assignment):
         "gaze_right_count": gaze_right_count,
         "gaze_down_count": gaze_down_count,
         "mobile_detected_count": mobile_detected_count,
+        "head_down_count": head_down_count,
+        "total_gaze_offscreen": total_gaze_offscreen,
+        "offscreen_seconds": offscreen_seconds,
 
         # KEYBOARD
         "esc_pressed_count": esc_pressed,

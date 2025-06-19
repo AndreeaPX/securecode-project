@@ -4,6 +4,7 @@ import GradingProgress from "../professor/components/GradingProgress";
 import PieChartComponent from "../professor/components/PieChartComponent";
 import BarChartComponent from "../professor/components/BarChartComponent";
 import BiometricSummaryCard from "./components/BiometricSummaryCard";
+import AttentionSessionCard from "./components/AttentionSessionCard";
 import "./ProfessorDashBoard.css";
 
 export default function ProfessorDashboard() {
@@ -38,6 +39,9 @@ export default function ProfessorDashboard() {
               <BiometricSummaryCard />
             </div>
           </div>
+          <div className="stat-card">
+          <AttentionSessionCard />
+        </div>
         </div>
       </div>
     );

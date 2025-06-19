@@ -4,6 +4,7 @@ from users.models.questions import Question, AnswerOption
 from users.models.tests import TestAssignment, StudentAnswer, StudentActivityLog
 from django.utils.dateparse import parse_duration
 from django.utils import timezone
+from ai_models.evaluation_engine import evaluate_assignment
 
 class StudentCourseSerializer(serializers.ModelSerializer):
     class Meta:
@@ -53,6 +54,7 @@ class SubmitAnswersSerializer(serializers.Serializer):
             assignment.answers.all().delete()
             StudentActivityLog.objects.filter(assignment=assignment, attempt_no__lt = assignment.attempt_no).delete()
             assignment.attempt_no += 1
+            
             assignment.finished_at = timezone.now()
             assignment.save()
 
@@ -100,7 +102,9 @@ class SubmitAnswersSerializer(serializers.Serializer):
                             pass
                 assignment.auto_score = round(total_score,2)
         assignment.save()
-
+        
+        if test.has_ai_assistent:
+            evaluate_assignment(assignment)
 
         return {
             "status": "submitted",

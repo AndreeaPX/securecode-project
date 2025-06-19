@@ -28,4 +28,5 @@ urlpatterns = [
     path("api/", include("users.urls")),
     path("face-login-admin/", face_login_admin, name="face_login_admin"),
     path("csrf/", get_csrf_token, name = "get_csrf"),
+    path("api/attention/", include("attention.urls")),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

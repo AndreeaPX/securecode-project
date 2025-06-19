@@ -111,7 +111,8 @@ class TestAssignment(models.Model):
     review_comment = models.TextField(blank=True, default="")
     final_verdict = models.BooleanField(null=True, blank=True)
 
-    ai_cheating = models.BooleanField(null=True)  # What the model thinks
+    report_pdf = models.FileField(upload_to='reports/', null=True, blank=True)
+    ai_cheating = models.BooleanField(null=True) 
     ai_probability = models.FloatField(null=True, blank=True)
     ai_details_json = models.JSONField(null=True, blank=True)
     ai_evaluated_at = models.DateTimeField(null=True, blank=True)

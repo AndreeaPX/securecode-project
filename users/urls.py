@@ -24,6 +24,7 @@ from .views.student_view import StudentCoursesAPIView, StudentActiveTestsGrouped
 from .views.submit_view import SubmitAnswersView
 from .views.mouse_keyboard_view import mouse_keyboard_check
 from .views.audio_analysis import live_audio_check
+from .views.professor_marks_view import ProfessorMarksViewSet
 
 
 router = DefaultRouter()
@@ -31,6 +32,7 @@ router.register(r'questions', QuestionViewApi, basename='questions')
 router.register(r'tests',TestViewSet, basename='tests')
 router.register(r'test-questions', TestQuestionViewSet, basename='test-questions')
 router.register(r"test-assignments", TestAssignmentViewSet, basename="test-assignment")
+router.register(r"professor/marks", ProfessorMarksViewSet, basename="professor-marks")
 
 urlpatterns = [
     path("login/", UserLoginAPIView.as_view(), name="login-user"),
@@ -50,6 +52,7 @@ urlpatterns = [
     path("student/tests-by-course/", StudentActiveTestsGroupedByCourseAPIView.as_view(), name="student-tests-by-course"),
     path("test-assignments/<int:assignment_id>/questions/", AssignedTestQuestionsAPIView.as_view(), name="assigned-test-questions"),
     path("submit-answers/", SubmitAnswersView.as_view(), name="submit-answers"),
+
     path('', include(router.urls)),
 ]
 

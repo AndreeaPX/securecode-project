@@ -14,6 +14,7 @@ import CreateTest from "./pages/professor/test_components/CreateTest";
 import StudentDashboard from "./pages/student/StudentDashBoard";
 import StudentCourseTest from "./pages/student/components/StudentCourseTest";
 import TestPage from "./pages/student/components/TestPage";
+import AttentionLiveView from "./pages/professor/components/AttentionLiveView";
 import { useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -50,6 +51,7 @@ function App() {
           <Route path="/tests/view/:testId" element={<CreateTest editMode={false} viewMode={true} />} />
           <Route path="/dashboard-student" element={<StudentDashboard />} />
           <Route path="/student/courses/:courseId/tests" element={<StudentCourseTest />} />
+          <Route path="/attention/live" element={<AttentionLiveView />} />
         </Route>
 
         <Route path="/tests/start/:assignmentId" element={<ProtectedRoute><TestPage /></ProtectedRoute>} />

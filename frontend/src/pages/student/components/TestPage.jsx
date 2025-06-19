@@ -51,6 +51,11 @@ export default function TestPage() {
     try {
       const res = await axiosInstance.get(`/test-assignments/${assignmentId}/`);
       setTest(res.data.test); 
+      if (!res.data.started_at) {
+      await axiosInstance.patch(`/test-assignments/${assignmentId}/`, {
+        started_at: new Date().toISOString(),
+      });
+    }
     } catch (err) {
       console.error("Failed to load test data", err);
       navigate("/dashboard-student");

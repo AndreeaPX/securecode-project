@@ -1,0 +1,20 @@
+.attention-session-card {
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px grey(148, 65, 65, 0.1);
+  background-color: rgb(65, 22, 97);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.attention-session-card video {
+  margin-top: 10px;
+  border-radius: 8px;
+}
+
+.attention-report {
+  margin-top: 1rem;
+  text-align: left;
+}

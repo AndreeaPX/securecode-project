@@ -57,13 +57,19 @@ def get_labeled_data():
 
 
 def train_and_save_model():
+
+
+
     X, y = get_labeled_data()
+
+    X = X.apply(pd.to_numeric, errors='coerce')
+    X = X.fillna(0)
 
     if len(X) < 10:
         print("[WARN] Too few labeled samples to train model.")
         return
     
-    X["key_presses_per_min"] = np.log1p(X["key_presses_per_min"])
+   
     X["chars_per_minute"] = np.log1p(X["chars_per_minute"])
     X["voiced_seconds"] = X["voiced_seconds"].clip(upper=20)
     X["focus_lost_total"] = (X["focus_lost_total"] > 1).astype(int)
@@ -112,7 +118,7 @@ def train_and_save_model():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     benchmark_path = f"ai_models/model_versions/model_{timestamp}.pkl"
     shutil.copy(MODEL_PATH, benchmark_path)
-    print(f"\n✅ Benchmark model saved at: {benchmark_path}")
+    print(f"\n❤️ Benchmark model saved at: {benchmark_path}")
     print(f"[OK] Model trained and saved to {MODEL_PATH}")
 
     imp = pd.Series(model.feature_importances_, index=X.columns)

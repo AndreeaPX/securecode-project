@@ -51,11 +51,7 @@ class Question(models.Model):
             
 
 class AnswerOption(models.Model):
-    question = models.ForeignKey(
-        Question,
-        on_delete=models.CASCADE,
-        related_name="options"  
-    )
+    question = models.ForeignKey(Question,on_delete=models.CASCADE, related_name="options" )
     text = models.CharField(max_length=512, null=False, blank=True)
     is_correct = models.BooleanField(default=False)
 

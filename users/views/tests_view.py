@@ -155,20 +155,35 @@ class TestQuestionsByTestIdAPIView(APIView):
         serializer = TestQuestionDetailedSerializer(test_questions, many=True)
         return Response(serializer.data)
     
-class TestAssignmentViewSet(viewsets.ReadOnlyModelViewSet):
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+
+class TestAssignmentViewSet(viewsets.ModelViewSet):
     serializer_class = TestAssignmentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-
         if user.role == "professor":
             return TestAssignment.objects.filter(test__professor=user)
         elif user.role == "student":
             return TestAssignment.objects.filter(student=user)
-        else:
-            return TestAssignment.objects.none()
+        return TestAssignment.objects.none()
 
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # permis doar studentului legat de assignment
+        if request.user != instance.student:
+            return Response({"detail": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+        allowed_fields = {"started_at", "finished_at", "is_submitted"}
+        filtered_data = {k: v for k, v in request.data.items() if k in allowed_fields}
+
+        serializer = self.get_serializer(instance, data=filtered_data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+    
 class AssignedTestQuestionsAPIView(APIView):
     permission_classes = [IsAuthenticated]
 

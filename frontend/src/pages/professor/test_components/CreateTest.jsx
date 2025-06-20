@@ -386,7 +386,7 @@ export default function CreateTest({ editMode, viewMode }) {
               checked={testData.allow_sound_analysis}
               onChange={handleChange}
             />
-            Allow Sound Analysis - Reccomended only for online examinations
+            Allow Sound Analysis - Recommended only for online examinations
           </label>
           <label>
             <input

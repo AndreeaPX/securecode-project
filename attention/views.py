@@ -61,10 +61,7 @@ def attention_check(request):
 
 
 def _bg_generate_report(session_id, user):
-    """
-    Runs in background:
-    • crunch timeline  • call AI  • render PDF  • save AttentionReport
-    """
+
     professor = user.professor_profile
 
     raw = get_session_stats(session_id)

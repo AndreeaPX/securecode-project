@@ -60,7 +60,7 @@ def generate_ai_feedback(timeline, avg):
 
     try:
         res = requests.post(
-            HF_URL_REPORT,  # ✅ correct URL
+            HF_URL_REPORT,
             headers={"Authorization": f"Bearer {HF_API_TOKEN}"},
             json={"inputs": prompt, "parameters": {"max_new_tokens": 300}},
             timeout=60,
@@ -68,9 +68,9 @@ def generate_ai_feedback(timeline, avg):
         res.raise_for_status()
         raw = res.json()[0].get("generated_text", "").strip()
         tips = _extract_json(raw)
-        return tips if tips else [f"⚠️ Could not parse AI output:\n{raw}"]
+        return tips if tips else [f" Could not parse AI output:\n{raw}"]
     except Exception as e:
-        return [f"💥 AI feedback error: {e}"]
+        return [f" AI feedback error: {e}"]
 
 @rate_limited(1.5)
 def generate_realtime_feedback(avg: float) -> str:
@@ -102,14 +102,12 @@ def generate_realtime_feedback(avg: float) -> str:
         res.raise_for_status()
         raw = res.json()[0].get("generated_text", "").strip()
 
-        # Extract only the content after 'TIP:' and trim garbage
         if "TIP:" in raw:
             tip = raw.split("TIP:", 1)[1].strip(" -•💡\"'\n")
         else:
             tip = next((l.strip(" -•💡\"'") for l in raw.splitlines() if l.strip()), "")
 
-        # Optional: cap at 25 words
         tip = " ".join(tip.split()[:25])
-        return tip if tip else "(⚠️ No usable tip extracted)"
+        return tip if tip else "( No usable tip extracted)"
     except Exception as e:
-        return f"(💥 AI error: {e})"
+        return f"( AI error: {e})"

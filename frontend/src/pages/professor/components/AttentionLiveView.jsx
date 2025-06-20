@@ -95,7 +95,7 @@ const fetchFeedbackTips = async () => {
 };
 
   const stopSession = async () => {
-    if (ending) return; // 🚫 prevent multiple clicks
+    if (ending) return; //  prevent multiple clicks
     setEnding(true);
 
     clearInterval(intervalRef.current);
@@ -125,7 +125,7 @@ const fetchFeedbackTips = async () => {
       <video ref={videoRef} autoPlay muted playsInline />
       <canvas ref={canvasRef} />
 
-      {/* 🆕 feedback chat */}
+      {/*  feedback chat */}
       <div className="feedback-chat">
         <h3>🧠 Attention Coach</h3>
         {feedbackLog.map((entry, i) => (

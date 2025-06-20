@@ -23,7 +23,6 @@ def validate_face_image(img_bytes):
     if noise < 50:
         return False, "Low noise level detected. Suspected spoof."
     
-
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     face_locations = face_recognition.face_locations(img_rgb)
 

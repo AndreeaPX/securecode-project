@@ -16,16 +16,7 @@
   <p><strong>Average Attention:</strong> {{ avg_attention }}%</p>
 
   <div class="section">
-    <h2>📈 Timeline</h2>
-    <ul>
-      {% for point in timeline %}
-        <li>At {{ point.timestamp }} → {{ point.attention_pct }}%</li>
-      {% endfor %}
-    </ul>
-  </div>
-
-  <div class="section">
-    <h2>🧠 AI Advice</h2>
+    <h2>🧠 AI Main Advice</h2>
     <ul>
       {% for tip in advice %}
         <li>{{ tip }}</li>

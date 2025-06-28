@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, serializers
+from rest_framework import viewsets, permissions, serializers, filters
 from users.models.tests import Test, TestQuestion, TestAssignment
 from users.serializers.tests import TestSerializer, TestQuestionSerializer, TestQuestionDetailedSerializer, TestAssignmentSerializer
 from rest_framework.exceptions import PermissionDenied, NotFound
@@ -6,18 +6,26 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
 from users.serializers.questions import StudentQuestionSerializer
 import random
 
 class TestViewSet(viewsets.ModelViewSet):
     serializer_class = TestSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
+    filterset_fields = {
+    "course": ["exact"],
+    "type": ["exact"],
+    "start_time": ["date"],  
+}
+    ordering_fields = ["start_time", "created_at"]
+    search_fields = ["name"]
 
     def get_queryset(self):
         user = self.request.user
         if user.role!="professor":
-            raise PermissionDenied("Only professors can view their own tests.")
+            raise PermissionDenied("Only professors can view their own tests.")  
         return Test.objects.filter(professor=user)
     
     def perform_create(self, serializer):

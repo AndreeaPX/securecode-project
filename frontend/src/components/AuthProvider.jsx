@@ -4,7 +4,7 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // să nu treacă ProtectedRoute înainte de verificare
+  const [loading, setLoading] = useState(true); 
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -17,15 +17,18 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  const isAuthenticated = () => {
+    return !!user && !!localStorage.getItem("accessToken");
+  };
+
+  const isFullyAuthenticated = () => isAuthenticated() && user?.face_verified;
+
   const logout = (manual = false) => {
     localStorage.clear();
     setUser(null);
     window.location.href = manual ? "/login" : "/login?expired=true";
   };
 
-  const isAuthenticated = () => {
-    return !!user && !!localStorage.getItem("accessToken");
-  };
 
   // Dacă tokenurile se șterg din alt tab → logout
   useEffect(() => {
@@ -52,7 +55,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, setUser, logout, isAuthenticated, loading }}>
+    <AuthContext.Provider value={{ user, setUser, logout, isAuthenticated, isFullyAuthenticated, loading }}>
       {children}
     </AuthContext.Provider>
   );

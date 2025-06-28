@@ -143,10 +143,19 @@ export default function CreateTest({ editMode, viewMode }) {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setTestData((prev) => ({
-      ...prev,
+    let newData = {
+      ...testData,
       [name]: type === "checkbox" ? checked : value
-    }));
+    }
+
+    if (
+      (name==="target_group" && !value) || 
+      (name === "type" && value === "exam")
+    ){
+      newData.target_subgroup = "";
+    }
+
+    setTestData(newData);
       
     if(testData.show_result){
       const onlyGrila = currentQuestions.every(
@@ -158,6 +167,30 @@ export default function CreateTest({ editMode, viewMode }) {
     }
     }
   };
+
+  const cleanPayload = (data) => {
+    const p = { ...data };
+
+    if (p.type === "exam") {
+      delete p.target_subgroup;
+    } else {
+      if (p.target_subgroup === "") {
+        delete p.target_subgroup;          // blank string → omit
+      } else if (p.target_subgroup !== undefined) {
+        p.target_subgroup = Number(p.target_subgroup); // ensure integer
+      }
+    }
+
+    p.target_series = p.target_series || null;
+    p.target_group  = p.target_group  || null;
+    p.duration_minutes = Number(p.duration_minutes);
+    p.allowed_attempts = Number(p.allowed_attempts || 1);
+    p.maxim_points = Number(p.maxim_points);
+    p.extra_points = Number(p.extra_points);
+
+    return p;
+  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -205,7 +238,7 @@ export default function CreateTest({ editMode, viewMode }) {
 
 
     try {
-      const payload = { ...testData };
+      const payload = cleanPayload(testData);
       if (payload.type !== "training") {
         payload.allowed_attempts = 1;
       }
@@ -252,6 +285,7 @@ export default function CreateTest({ editMode, viewMode }) {
       navigate("/tests");
     } catch (err) {
       console.error("Failed to save test:", err);
+       console.error("Backend error details:", err.response?.data);
       alert("Something went wrong.");
     }
   };
@@ -443,16 +477,17 @@ export default function CreateTest({ editMode, viewMode }) {
             </option>
           ))}
         </select>
-
-        <input
-          type="number"
-          name="target_subgroup"
-          placeholder="Subgroup"
-          value={testData.target_subgroup?.id || testData.target_subgroup || ""}
-          onChange={handleChange}
-        />
-
-        
+        {testData.type !="exam" && testData.target_group &&
+            <input
+              type="number"
+              name="target_subgroup"
+              placeholder="Subgroup (1 or 2)"
+              value={testData.target_subgroup?.id || testData.target_subgroup || ""}
+              onChange={handleChange}
+              min={1}
+              max={2}
+            />
+          }
 
         {currentQuestions.length > 0 && (
           <div className="options-section">

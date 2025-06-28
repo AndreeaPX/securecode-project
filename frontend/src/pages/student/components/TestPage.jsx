@@ -34,12 +34,30 @@ export default function TestPage() {
   const shouldMonitor = verified && test?.has_ai_assistent;
   useUserActivityMonitor(shouldMonitor ? assignmentId : null);
 
+  const finished = sessionStorage.getItem(`assignment_${assignmentId}_submitted`) === "true";
+  const isTraining = sessionStorage.getItem(`assignment_${assignmentId}_is_training`) === "true";
+
+  const shouldBlock = finished && !isTraining;
+  useEffect(() => {
+    if (shouldBlock) {
+      navigate("/dashboard-student", { replace: true });
+    }
+  }, [shouldBlock, navigate]);
+
+  if (shouldBlock) {
+    return null; 
+  }
+
   const { formatted: timeLeft } = useCountdown(
     shouldStartCountdown ? test.duration_minutes : null,
     async () => {
       alert("Time's up! Submitting your answers...");
       await submitTest();
-      navigate("/dashboard-student");
+      if(test?.type !== "training")
+      {
+        sessionStorage.setItem(`assignment_${assignmentId}_submitted`, "true");
+      }
+      navigate("/dashboard-student", { replace: true });
     }
   );
 
@@ -50,6 +68,8 @@ export default function TestPage() {
   const fetchTest = async () => {
     try {
       const res = await axiosInstance.get(`/test-assignments/${assignmentId}/`);
+      const isTraining = res.data.test?.type === "training";
+      sessionStorage.setItem(`assignment_${assignmentId}_is_training`, isTraining ? "true":"false");
       setTest(res.data.test); 
       if (!res.data.started_at) {
       await axiosInstance.patch(`/test-assignments/${assignmentId}/`, {
@@ -118,6 +138,7 @@ export default function TestPage() {
       console.warn("Fullscreen failed:", err);
     } finally {
       setVerified(true);
+      navigate(".", { replace: true, state: { verified: true } });
     }
   };
 
@@ -156,10 +177,16 @@ export default function TestPage() {
         await document.exitFullscreen();
       }
       setProctoringEnabled(false);
-      navigate("/dashboard-student");
-    }else{
+      if(test?.type !== "training")
+      sessionStorage.setItem(`assignment_${assignmentId}_submitted`, "true");
+      navigate("/dashboard-student", { replace: true });
+    }
+    else {
     //alert("Attempt submitted!");
-    navigate("/dashboard-student");}
+    if(test?.type !== "training")
+    sessionStorage.setItem(`assignment_${assignmentId}_submitted`, "true");
+    navigate("/dashboard-student", { replace: true });
+    }
   } catch (err) {
     if (err.response?.data?.detail) {
           if (test?.use_proctoring){

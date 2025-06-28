@@ -14,7 +14,7 @@ export default function AttentionSessionCard() {
   return (
     <div className="attention-session-card">
       <h3>Classroom Attention Monitor</h3>
-      <button onClick={startSession}>Start Attention Tracking</button>
+      <button onClick={startSession} >Start Attention Tracking</button>
 
       {report && (
         <div className="attention-report">

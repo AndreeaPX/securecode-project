@@ -38,9 +38,15 @@ class TestSerializer(serializers.ModelSerializer):
 
         if test_type == "training" and not (target_series or target_group):
             raise serializers.ValidationError("Training must target at least a group or series.")
-
-        if target_subgroup is not None and target_subgroup not in [1, 2]:
-            raise serializers.ValidationError("Subgroup must be 1 or 2.")
+        
+        if test_type != "exam":
+            if target_group:
+                if target_subgroup is not None and target_subgroup not in [1, 2]:
+                    raise serializers.ValidationError("Subgroup must be 1 or 2.")
+            elif target_subgroup is not None:
+                raise serializers.ValidationError("Subgroups can only be used with groups.")
+        elif target_subgroup is not None:
+            raise serializers.ValidationError("Exams cannot have a subgroup.")
 
         return data
     

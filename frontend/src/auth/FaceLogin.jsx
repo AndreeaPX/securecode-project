@@ -68,6 +68,9 @@ export default function FaceLogin() {
         face_image: faceData,
       });
       if (res.data.success) {
+        const updatedUser = {...user, face_verified :true}
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        setUser(updatedUser)
         setMessage("Face authenticated.");
         stopCamera();
         videoRef.current.srcObject = null;

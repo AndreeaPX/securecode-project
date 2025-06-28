@@ -116,6 +116,13 @@
   transform: translateY(-2px);
 }
 
+.questions-table td.email-cell {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Floating button aligned inside page */
 .floating-create-button {
   position:fixed;

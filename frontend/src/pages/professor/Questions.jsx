@@ -18,7 +18,6 @@ export default function Questions() {
     date: "",
   });
 
-  // === Refactor pentru refresh control ===
   let isRefreshingToken = false;
   let refreshPromise = null;
 
@@ -143,6 +142,7 @@ export default function Questions() {
 
   return (
     <div className="questions-page">
+      <h2>Questions Database</h2>
       <form onSubmit={handleSearchSubmit} className="search-filters-container">
         <input
           type="text"

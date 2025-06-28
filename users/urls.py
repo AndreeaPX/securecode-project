@@ -15,6 +15,7 @@ from .views.settings_view import (
 )
 
 
+
 from .views.attachments_view import QuestionAttachmentAPIView
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -25,6 +26,7 @@ from .views.submit_view import SubmitAnswersView
 from .views.mouse_keyboard_view import mouse_keyboard_check
 from .views.audio_analysis import live_audio_check
 from .views.professor_marks_view import ProfessorMarksViewSet
+from .views.marks import MarksListAPIView, MarksAssignmentsAPIView
 
 
 router = DefaultRouter()
@@ -52,6 +54,8 @@ urlpatterns = [
     path("student/tests-by-course/", StudentActiveTestsGroupedByCourseAPIView.as_view(), name="student-tests-by-course"),
     path("test-assignments/<int:assignment_id>/questions/", AssignedTestQuestionsAPIView.as_view(), name="assigned-test-questions"),
     path("submit-answers/", SubmitAnswersView.as_view(), name="submit-answers"),
+    path("marks/", MarksListAPIView.as_view(), name="marks-list"),
+    path("marks/<int:test_id>/", MarksAssignmentsAPIView.as_view(), name="marks-detail"),
 
     path('', include(router.urls)),
 ]

@@ -10,6 +10,12 @@ export default function Tests() {
   const [tests, setTests] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filters,setFilters] = useState({
+    course:"",
+    type:"",
+    start_time :"",
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -35,8 +41,45 @@ export default function Tests() {
     return course ? course.name : "Unknown";
   };
 
+  const fetchTests = async () =>{
+    try {
+      const params = {};
+      if(searchTerm) params.search = searchTerm;
+      if(filters.course) params.course = filters.course;
+      if(filters.type) params.type = filters.type;
+      if(filters.start_time) params.start_time__date = filters.start_time;
+      console.log(filters.start_time)
+      console.log(params.start_time__date)
+
+      const res = await axiosInstance.get("/tests/", {params});
+      console.log("Fetched tests with filters:", res.data);
+      setTests(res.data);
+    } catch (err){
+      console.error("Failed to load tests:", err);
+    }
+  };
+
+  const handleSearchChange = (e) => setSearchTerm(e.target.value);
+
+  const handleFilterChange = (e) => {
+    const {name, value} = e.target;
+    setFilters({...filters, [name]:value});
+  };
+
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setFilters({course:"", type:"", start_time:""});
+    fetchTests();
+  }
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    fetchTests();
+  }
+  
+
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this test?")) return;
+    if (!window.confirm("Are you sure you want to delete this test draft?")) return;
     try {
       await axiosInstance.delete(`/tests/${id}/`);
       setTests((prev) => prev.filter((t) => t.id !== id));
@@ -50,6 +93,38 @@ export default function Tests() {
   return (
     <div className="questions-page">
       <h2>Your Created Tests</h2>
+
+      <form onSubmit={handleSearchSubmit} className="search-filters-container">
+        <input
+          type = "text"
+          placeholder="Search tests..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+        />
+        <select name = "course" value={filters.course} onChange={handleFilterChange}>
+          <option value="">All Courses</option>
+          {courses.map((course) => (
+            <option key={course.id} value={course.id}>
+              {course.name}
+            </option>
+          ))}
+        </select>
+        <select name="type" value={filters.type} onChange={handleFilterChange}>
+          <option value="">All Types</option>
+          <option value="exam">Exam Test</option>
+          <option value="seminar">Seminar Test</option>
+          <option value="training">Training Test</option>
+        </select>
+        <input
+          type="date"
+          name = "start_time"
+          value = {filters.start_time}
+          onChange={handleFilterChange}
+        />
+        <button type="submit">Apply Filters</button>
+        <button type="button" onClick={handleResetFilters}>Reset Filters</button>
+      </form>
+
       <div className="questions-table-container">
         <table className="questions-table">
           <thead>

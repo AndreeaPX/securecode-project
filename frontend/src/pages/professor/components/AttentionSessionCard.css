@@ -1,12 +1,33 @@
 .attention-session-card {
+  width: 96vw; 
+  margin: 0 auto;
+  margin-top: 2rem;
   padding: 1rem;
   border-radius: 12px;
-  box-shadow: 0 2px 6px grey(148, 65, 65, 0.1);
-  background-color: rgb(65, 22, 97);
+  box-shadow: 0 2px 6px rgba(148, 65, 65, 0.1);
+  background-color: #1f1c2c;
   color: white;
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.attention-session-card button {
+  background-color: rgb(129, 112, 217);
+  color: black;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 1rem;
+  width: 100%;
+  max-width: 600px; 
+}
+
+.attention-session-card button:hover {
+  background-color: #5b21b3;
 }
 
 .attention-session-card video {
@@ -15,6 +36,6 @@
 }
 
 .attention-report {
-  margin-top: 1rem;
+  margin-top: 2rem;
   text-align: left;
 }

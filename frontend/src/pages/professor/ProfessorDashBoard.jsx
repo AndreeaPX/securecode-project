@@ -39,7 +39,7 @@ export default function ProfessorDashboard() {
               <BiometricSummaryCard />
             </div>
           </div>
-          <div className="stat-card">
+          <div >
           <AttentionSessionCard />
         </div>
         </div>

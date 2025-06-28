@@ -46,6 +46,17 @@ class Test(models.Model):
             raise ValidationError("Choose either a target series or a target group, not both.")
         if not self.target_series and not self.target_group:
             raise ValidationError("Test must target at least a series or a group.")
+        
+        if self.type != "exam":
+            if self.target_group:
+                if self.target_subgroup is not None and self.target_subgroup not in [1, 2]:
+                    raise ValidationError("Subgroup must be either 1 or 2.")
+            elif self.target_subgroup is not None:
+                raise ValidationError("Subgroups can only be used with groups.")
+        elif self.target_subgroup is not None:
+            raise ValidationError("Exams cannot have a subgroup.")
+
+        
         if self.use_proctoring:
             from users.models.questions import QuestionAttachment
             has_non_image_attachment = Question.objects.filter(

@@ -16,7 +16,9 @@ import StudentCourseTest from "./pages/student/components/StudentCourseTest";
 import TestPage from "./pages/student/components/TestPage";
 import AttentionLiveView from "./pages/professor/components/AttentionLiveView";
 import Marks from "./pages/professor/marks/Marks";
+import AssignmentReview from "./pages/professor/marks/AssignmentReview";
 import MarksAssignments from "./pages/professor/marks/MarksAssignments";
+
 import { useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -52,6 +54,7 @@ function App() {
           <Route path="/tests/edit/:testId" element={<CreateTest editMode={true} viewMode={false}/>} />
           <Route path="/marks" element={<Marks />} />
           <Route path="/marks/:testId" element={<MarksAssignments />} />
+          <Route path="/assignments/:assignmentId/review" element={<AssignmentReview />} />
           <Route path="/tests/view/:testId" element={<CreateTest editMode={false} viewMode={true} />} />
           <Route path="/dashboard-student" element={<StudentDashboard />} />
           <Route path="/student/courses/:courseId/tests" element={<StudentCourseTest />} />

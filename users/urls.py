@@ -14,7 +14,8 @@ from .views.settings_view import (
     StudentSettingsAPIView,
 )
 
-
+from .views.grade_view import AssignmentReviewAPIView
+from .views.visuals_view import AssignmentProgressAPIView, OverallProgressAPIView, GradingProgressAPIView
 
 from .views.attachments_view import QuestionAttachmentAPIView
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -56,6 +57,10 @@ urlpatterns = [
     path("submit-answers/", SubmitAnswersView.as_view(), name="submit-answers"),
     path("marks/", MarksListAPIView.as_view(), name="marks-list"),
     path("marks/<int:test_id>/", MarksAssignmentsAPIView.as_view(), name="marks-detail"),
+    path("assignments/<int:pk>/review/",AssignmentReviewAPIView.as_view(), name = "assignment-review"),
+    path("assignments/progress/", AssignmentProgressAPIView.as_view(), name="assignment-progress"),
+    path("assignments/overall-progress/", OverallProgressAPIView.as_view()),
+    path("assignments/grading-progress/", GradingProgressAPIView.as_view(), name="grading-progress"),
 
     path('', include(router.urls)),
 ]

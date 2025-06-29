@@ -1,0 +1,195 @@
+.review-page {
+  width: 1530px;
+  margin: 2rem auto;
+  padding: 2rem;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: transparent;
+  color: #f1f5f9;
+}
+
+.review-page h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  color: #c4b5fd;
+  text-align: center;
+}
+
+/* === Test Metadata === */
+.test-meta {
+  background-color: #734791;
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
+  border-left: 4px solid #7c3aed;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.meta-row p {
+  margin: 0;
+  font-size: 1rem;
+  color: #f1f5f9;
+}
+
+.meta-row strong {
+  color: #ffffff;
+}
+
+/* === Settings Section === */
+.settings-display {
+  margin-top: 1.5rem;
+}
+
+.settings-display strong {
+  display: block;
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+  color: #facc15;
+}
+
+.settings-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.settings-list li {
+  background-color: #2a263a;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  color: #f1f5f9;
+  gap: 0.5rem;
+}
+
+.settings-list .enabled {
+  color: #4ade80;
+}
+
+.settings-list .disabled {
+  color: #f87171;
+}
+
+/* === Question Block === */
+.question-block {
+  background-color: #1f2937;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+}
+
+.question-block h3 {
+  font-size: 1.1rem;
+  color: #c4b5fd;
+  margin-bottom: 0.8rem;
+}
+
+.question-block p {
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+  color: #f1f5f9;
+}
+
+.question-block pre {
+  background-color: #0f172a;
+  color: #f8fafc;
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.95rem;
+}
+
+/* === Attachments === */
+.attachments img {
+  max-width: 100%;
+  margin-top: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #475569;
+}
+
+.attachments a {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+/* === Grading === */
+.grading-controls {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.grading-controls label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.grading-controls input[type="number"],
+.grading-controls textarea,
+.final-feedback textarea {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #0f172a;
+  color: #f8fafc;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  font-size: 1rem;
+  resize: vertical;
+}
+
+/* === Final Feedback === */
+.final-feedback {
+  margin-top: 3rem;
+}
+
+.final-feedback label {
+  font-weight: bold;
+  font-size: 1rem;
+  color: #facc15;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+/* === Submit Button === */
+button {
+  margin-top: 2rem;
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+  font-weight: 500;
+  background-color: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+button:hover {
+  background-color: #6b21a8;
+}
+
+button:disabled {
+  background-color: #4b5563;
+  cursor: not-allowed;
+}

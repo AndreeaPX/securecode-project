@@ -15,6 +15,7 @@
 .attention-session-card button {
   background-color: rgb(129, 112, 217);
   color: black;
+  text-align: center;
   border: none;
   padding: 0.6rem 1.2rem;
   font-size: 1rem;
@@ -24,6 +25,8 @@
   margin-top: 1rem;
   width: 100%;
   max-width: 600px; 
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .attention-session-card button:hover {

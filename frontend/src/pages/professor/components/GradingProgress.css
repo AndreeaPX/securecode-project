@@ -1,34 +1,64 @@
 .grading-progress-container {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .grading-row {
-    display:flex;
-    gap: 1rem;
-    background-color: #1f1c2c;
-    padding: 1rem;
-    border-radius: 8px;
-  }
-  
-  .grading-tag {
-    background-color: #8a2be2;
-    padding: 0.5rem 1rem;
-    font-weight: bold;
-    color: white;
-    border-radius: 6px;
-    flex-shrink: 0;
-  }
-  
-  .grading-info .course-name {
-    text-align: left;
-    font-weight: 600;
-    color: #fff;
-  }
-  
-  .grading-info .course-meta {
-    font-size: 0.85rem;
-    color: #bbb;
-  }
-  
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background: #1e1b2e;
+  max-height: 320px;
+  overflow-y: auto;
+  font-size: 0.9rem;
+}
+
+.grading-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  background-color: #2a2640;
+  padding: 0.8rem;
+  border-radius: 10px;
+  transition: background-color 0.3s;
+}
+
+.grading-row:hover {
+  background-color: #322c52;
+}
+
+.grading-tag {
+  width: 32px;
+  height: 32px;
+  background-color: #8a2be2;
+  color: white;
+  font-weight: bold;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.grading-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.grading-info .course-name {
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 0.2rem;
+}
+
+.grading-info .course-meta {
+  font-size: 0.8rem;
+  color: #bcbcbc;
+}
+
+/* Custom scrollbar (optional, for aesthetics) */
+.grading-progress-container::-webkit-scrollbar {
+  width: 6px;
+}
+.grading-progress-container::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}

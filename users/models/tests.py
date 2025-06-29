@@ -138,6 +138,7 @@ class StudentAnswer(models.Model):
     answer_text = models.TextField(null=True, blank=True)
     selected_options = models.ManyToManyField(AnswerOption, blank=True)
     feedback = models.TextField(null=True, blank=True)
+    points = models.FloatField(default=0) 
     needs_manual_review = models.BooleanField(default=False)
 
     def __str__(self):

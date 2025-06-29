@@ -1,51 +1,66 @@
 .student-progress-container {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .student-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-  
-  .student-info {
-    display: flex;
-    align-items: center;
-    gap: 0.7rem;
-    font-weight: 500;
-  }
-  
-  .avatar-placeholder {
-    width: 32px;
-    height: 32px;
-    background-color: #8a2be2;
-    color: white;
-    font-weight: bold;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .progress-bar {
-    flex: 1;
-    background-color: #333;
-    border-radius: 6px;
-    overflow: hidden;
-    height: 8px;
-    margin-right: 0.5rem;
-  }
-  
-  .progress-fill {
-    background-color: #8a2be2;
-    height: 100%;
-    transition: width 0.4s ease-in-out;
-  }
-  
-  .progress-value {
-    font-size: 0.9rem;
-  }
-  
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.8rem;
+  border-radius: 12px;
+  background: #1e1b2e;
+  max-height: 300px; /* smaller height */
+  overflow-y: auto;
+  font-size: 0.85rem; /* smaller text */
+}
+
+.student-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.student-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.avatar-placeholder {
+  width: 24px;
+  height: 24px;
+  background-color: #8a2be2;
+  color: white;
+  font-size: 0.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.progress-bar {
+  flex: 1;
+  background-color: #333;
+  border-radius: 6px;
+  overflow: hidden;
+  height: 8px;
+  margin-right: 0.5rem;
+}
+
+.progress-fill {
+  background-color: #8a2be2;
+  height: 100%;
+  transition: width 0.4s ease-in-out;
+}
+
+.progress-value {
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.student-progress-container::-webkit-scrollbar {
+  width: 6px;
+}
+.student-progress-container::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}

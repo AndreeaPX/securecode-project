@@ -63,7 +63,7 @@ export default function MarksAssignments() {
               <td>
                 <button
                   disabled={a.status !== "finalized"}
-                  onClick={() => navigate(`/assignments/${a.id}`)}
+                  onClick={() => navigate(`/assignments/${a.id}/review`)}
                 >
                   Open
                 </button>

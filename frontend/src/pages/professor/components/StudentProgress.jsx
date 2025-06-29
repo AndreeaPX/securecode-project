@@ -1,31 +1,35 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axiosInstance from "../../../api/axios";
 import "./StudentProgress.css";
 
-const moksSet = [
-    { name: "Johen", progress: 84 },
-    { name: "Aneesha", progress: 64 },
-    { name: "Josna", progress: 54 },
-    { name: "Dhanush", progress: 44 },
-];
+export default function StudentProgress() {
+  const [progressList, setProgressList] = useState([]);
 
-export default function StudentProgress(){
-    return(
-        <div className="student-progress-container">
-        {moksSet.map((student, index) => (
-          <div key={index} className="student-row">
-            <div className="student-info">
-              <div className="avatar-placeholder">{student.name[0]}</div>
-              <span>{student.name}</span>
+  useEffect(() => {
+    axiosInstance.get("/assignments/progress/")
+      .then(res => setProgressList(res.data))
+      .catch(err => console.error("Failed to fetch progress", err));
+  }, []);
+
+  return (
+    <div className="student-progress-container">
+      {progressList.map((assignment, index) => (
+        <div key={assignment.id} className="student-row">
+          <div className="student-info">
+            <div className="avatar-placeholder">
+              {index + 1}
             </div>
-            <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{ width: `${student.progress}%` }}
-              ></div>
-            </div>
-            <span className="progress-value">{student.progress}%</span>
+            <span>{assignment.name}</span>
           </div>
-        ))}
-      </div>
-    );
+          <div className="progress-bar">
+            <div
+              className="progress-fill"
+              style={{ width: `${assignment.progress_percent}%` }}
+            ></div>
+          </div>
+          <span className="progress-value">{assignment.progress_percent}%</span>
+        </div>
+      ))}
+    </div>
+  );
 }

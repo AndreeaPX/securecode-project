@@ -153,6 +153,7 @@ class StudentActivityLog(models.Model):
     event_type = models.CharField(max_length=100, null=True, blank=True)
     event_message = models.TextField(null=True, blank=True)
     pressed_key = models.CharField(max_length=10, null=True, blank=True)
+    chars_written = models.PositiveIntegerField(default=0)
     key_delay = models.FloatField(null=True, blank=True)
     def __str__(self):
         return f"{self.assignment} - Activity at {self.timestamp}"
@@ -170,6 +171,8 @@ class StudentActivityAnalysis(models.Model):
     total_focus_lost = models.IntegerField(default=0)
     is_suspicious = models.BooleanField(default=False)
     analyzed_at = models.DateTimeField(auto_now=True)
+    total_chars = models.PositiveIntegerField(default=0)
+
     class Meta:
         unique_together = ("assignment", "attempt_no")
 

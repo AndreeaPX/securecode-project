@@ -5,15 +5,17 @@ from django.utils import timezone
 from users.models.tests import TestAssignment, StudentActivityLog
 from users.models.tests import StudentActivityAnalysis 
 import json
+from django.db.models import Sum
 
 def analyze_assignment_logs(assignment):
-    logs = StudentActivityLog.objects.filter(assignment=assignment, attempt_no=assignment.attempt_no)
+    logs = StudentActivityLog.objects.filter(assignment=assignment,  attempt_no__lte=assignment.attempt_no)
     esc = logs.filter(event_type="esc_pressed").count()
     second_screen = logs.filter(event_type="second_screen").count()
     tab_switches = logs.filter(event_type="tab_hidden").count()
     window_blurs = logs.filter(event_type="window_blur").count()
     copy_paste = logs.filter(event_type__in=["copy_event", "paste_event", "cut_event"]).count()/2
     key_presses = logs.filter(event_type="key_press").count()
+    total_chars = logs.aggregate(Sum("chars_written"))["chars_written__sum"] or 0
 
     delays = logs.filter(event_type="key_press").values_list("key_delay", flat=True)
     delays = [d for d in delays if d is not None]
@@ -41,6 +43,7 @@ def analyze_assignment_logs(assignment):
             "total_key_presses": key_presses,
             "average_key_delay": avg_delay,
             "copy_paste_events": copy_paste,
+            "total_chars": total_chars,
             "total_focus_lost": second_screen + window_blurs + tab_switches,
             "is_suspicious": is_sus
         }
@@ -67,26 +70,32 @@ def mouse_keyboard_check(request):
     except TestAssignment.DoesNotExist:
         return Response({"error": "Invalid assignment ID or unauthorized."}, status=403)
 
-    key = None
-    delay = None
+    key = None      
+    delay = None       
+
+    char_typed = 0
     if event_type == "key_press":
         try:
             msg = json.loads(event_message)
-            key = msg.get("key")
+            key   = msg.get("key", "")
             delay = msg.get("time_since_last")
-        except:
-            pass
+            if len(key) == 1 and key.isprintable():
+                char_typed = 1
+        except Exception:
+            pass                     
 
     StudentActivityLog.objects.create(
         assignment=assignment,
-        attempt_no=assignment.attempt_no+1,
+        attempt_no=assignment.attempt_no,
         timestamp=timezone.now(),
         event_type=event_type,
         event_message=event_message,
         anomaly_score=anomaly_score,
         pressed_key=key,
         key_delay=delay,
-        focus_lost_count=1 if event_type in ["window_blur", "tab_hidden", "second_screen"] else 0
+        focus_lost_count=1 if event_type in ["window_blur", "tab_hidden", "second_screen"] else 0,
+        chars_written=char_typed,
     )
+
 
     return Response({"success": True})

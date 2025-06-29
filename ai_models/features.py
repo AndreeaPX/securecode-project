@@ -1,163 +1,144 @@
-from users.models.tests import StudentActivityLog, StudentActivityAnalysis, AudioAnalysis, StudentAnswer, TestQuestion
-from users.models.questions import Question
-from django.utils import timezone
-from datetime import timedelta
+from __future__ import annotations
+from collections import Counter
+from typing import Dict, Any
 
-def is_humanly_possible_writing(chars_per_minute, key_press_count, total_chars):
-    if total_chars < 300:
+from django.db.models import Q
+from django.utils import timezone
+
+from users.models.tests import (
+    TestAssignment,
+    StudentActivityLog,
+    StudentActivityAnalysis,
+    AudioAnalysis,
+)
+from users.models.questions import Question
+
+def _gap(a, b, cap: int = 30) -> float:
+    return min(abs((a - b).total_seconds()), cap)
+
+
+def _impossible_writing(cpm: float, key_presses: int, chars: int) -> int:
+    if chars < 300:
         return 0
-    if chars_per_minute > 700:
+    if cpm > 500:
         return 1
-    if chars_per_minute > 500 and key_press_count < 10:
+    if cpm > 350 and key_presses < chars * 0.4:
         return 1
     return 0
 
-def extract_features_for_assignment(assignment):
-    attempt_no = assignment.attempt_no
+
+def extract_features_for_assignment(assignment: TestAssignment) -> Dict[str, Any]:
     test = assignment.test
-    use_proctoring = test.use_proctoring
+    ai_enabled = test.has_ai_assistent
+    audio_enabled = ai_enabled and test.allow_sound_analysis
 
-    # ======================= AUDIO =======================
-    if test.allow_sound_analysis:
-        try:
-            audio_analysis = AudioAnalysis.objects.get(assignment=assignment, attempt_no=attempt_no)
-            voiced_seconds = audio_analysis.voiced_seconds
-        except AudioAnalysis.DoesNotExist:
-            voiced_seconds = 0.0
+    writing_required = Question.objects.filter(
+        testquestion__test=test,
+        type__in=["open", "code"],
+    ).exists()
 
-        logs = StudentActivityLog.objects.filter(assignment=assignment, attempt_no=attempt_no)
-        voice_no_mouth_count = logs.filter(event_type="voice_no_mouth").count()
-        too_much_talking_count = logs.filter(event_type="too_much_talking").count()
-    else:
-        voiced_seconds = 0.0
-        voice_no_mouth_count = 0
-        too_much_talking_count = 0
+    # duration
+    start = assignment.started_at or timezone.now()
+    end = assignment.finished_at or timezone.now()
+    duration_s = max((end - start).total_seconds(), 1)
 
-    # ======================= CAMERA =======================
-    
-    camera_logs = StudentActivityLog.objects.filter(assignment=assignment, attempt_no=attempt_no)
+    camera_logs = StudentActivityLog.objects.none()
+    offscreen_sec = 0.0
+    mobile_detected = multiple_faces_flag = face_mismatch_flag = no_face_flag = 0
 
-    if not camera_logs.exists():
-        # fallback to latest available attempt if current has no logs
-        latest_attempt = (
-            StudentActivityLog.objects.filter(assignment=assignment)
-            .order_by('-attempt_no')
-            .values_list('attempt_no', flat=True)
-            .first()
+    if ai_enabled:
+        camera_logs = StudentActivityLog.objects.filter(
+            assignment=assignment,
+            attempt_no=assignment.attempt_no,
         )
-        if latest_attempt is not None:
-            camera_logs = StudentActivityLog.objects.filter(assignment=assignment, attempt_no=latest_attempt)
+        counts = Counter(camera_logs.values_list("event_type", flat=True))
+        mobile_detected = int(counts["mobile_detected"] > 0)
+        multiple_faces_flag = int(counts["multiple_faces"] > 0)
+        face_mismatch_flag = int(counts["face_mismatch"] > 0)
+        no_face_flag = int(counts["no_face_found"] > 0)
 
+        gaze_logs = camera_logs.filter(
+            Q(event_type="gaze_offscreen") | Q(event_type="head_pose_suspicious")
+        ).order_by("timestamp")
+        prev = None
+        for log in gaze_logs:
+            if prev:
+                offscreen_sec += _gap(log.timestamp, prev)
+            prev = log.timestamp
 
-    multiple_faces_detected = camera_logs.filter(event_type="multiple_faces").count()
-    face_mismatch_count = camera_logs.filter(event_type="face_mismatch").count()
-    no_face_detected_count = camera_logs.filter(event_type="no_face_found").count()
-    mobile_detected_count = camera_logs.filter(event_type="mobile_detected").count()
-    gaze_left_count = camera_logs.filter(event_type="gaze_offscreen", event_message__icontains="left").count()
-    print(gaze_left_count)
-    gaze_right_count = camera_logs.filter(event_type="gaze_offscreen", event_message__icontains="right").count()
-    if use_proctoring:
-        gaze_down_count = camera_logs.filter(event_type="gaze_offscreen", event_message__icontains="down").count()
-    else:
-        gaze_down_count = 0
-    
-    gaze_offscreen_all = camera_logs.filter(event_type="gaze_offscreen").count()
-    head_down_count = camera_logs.filter(event_type="head_pose_suspicious").count()
-    total_gaze_offscreen = gaze_offscreen_all + head_down_count
+    analysis = StudentActivityAnalysis.objects.filter(
+        assignment=assignment,
+        attempt_no=assignment.attempt_no,
+    ).first()
 
-    from django.db.models import Q
+    esc_pressed = analysis.esc_pressed if analysis else 0
+    second_screen = analysis.second_screen_events if analysis else 0
+    tab_switches = analysis.tab_switches if analysis else 0
+    window_blurs = analysis.window_blurs if analysis else 0
+    key_presses = analysis.total_key_presses if analysis else 0
+    avg_delay = analysis.average_key_delay if analysis else 0.0
+    total_chars = analysis.total_chars if analysis else 0
 
-    gaze_logs = camera_logs.filter(Q(event_type="gaze_offscreen") | Q(event_type="head_pose_suspicious")).order_by("timestamp")
+    cpm = total_chars / (duration_s / 60)
+    copy_paste_ratio_flag = int(total_chars and key_presses < total_chars * 0.2 and writing_required)
+    impossible_typing = _impossible_writing(cpm, key_presses, total_chars) if writing_required else 0
 
-    offscreen_seconds = 0.0
-    prev_time = None
-    MAX_INTERVAL = 3  # seconds
+    voiced_seconds = voiced_ratio = speaking_too_much = 0.0
+    if audio_enabled:
+        audio = AudioAnalysis.objects.filter(
+            assignment=assignment,
+            attempt_no=assignment.attempt_no,
+        ).first()
+        if audio:
+            voiced_seconds = audio.voiced_seconds or 0.0
+            voiced_ratio = audio.voiced_ratio or 0.0
+            speaking_too_much = int(duration_s >= 90 and voiced_ratio >= 0.5)
 
-    for log in gaze_logs:
-        if prev_time:
-            delta = (log.timestamp - prev_time).total_seconds()
-            if delta <= MAX_INTERVAL:
-                offscreen_seconds += delta
-            else:
-                offscreen_seconds += 1
-        else:
-            offscreen_seconds += 1
-        prev_time = log.timestamp
+    total_events = camera_logs.count() + (analysis.total_focus_lost if analysis else 0)
+    activity_density = total_events / duration_s
+    short_no_logs_flag = int(duration_s > 60 and total_events == 0)
 
-    # ======================= KEYBOARD & FOCUS =======================
-    if test.has_ai_assistent:
-        try:
-            activity = StudentActivityAnalysis.objects.get(assignment=assignment, attempt_no=attempt_no)
-        except StudentActivityAnalysis.DoesNotExist:
-            activity = None
+    distilled = {
+        "duration_seconds": duration_s,
+        "writing_required": int(writing_required),
+        "mobile_detected": mobile_detected,
+        "multiple_faces_flag": multiple_faces_flag,
+        "face_mismatch_flag": face_mismatch_flag,
+        "no_face_flag": no_face_flag,
+        "offscreen_seconds": offscreen_sec,
+        "copy_paste_ratio": copy_paste_ratio_flag,
+        "impossible_typing": impossible_typing,
+        "voiced_seconds": voiced_seconds,
+        "voiced_ratio": voiced_ratio,
+        "speaking_too_much": speaking_too_much,
+        "activity_density": round(activity_density, 4),
+        "short_session_no_logs": short_no_logs_flag,
+    }
 
-        esc_pressed = activity.esc_pressed if activity else 0
-        second_screen = activity.second_screen_events if activity else 0
-        tab_switches = activity.tab_switches if activity else 0
-        window_blur = activity.window_blurs if activity else 0
-        paste = activity.copy_paste_events if activity else 0
-        key_presses = activity.total_key_presses if activity else 0
-        avg_delay = activity.average_key_delay if activity else 0.0
-        focus_lost = activity.total_focus_lost if activity else 0
-    else:
-        esc_pressed = 0
-        second_screen = 0
-        tab_switches = 0
-        window_blur = 0
-        paste = 0
-        key_presses = 0
-        avg_delay = 0.0
-        focus_lost = 0
+    modality_flags = {
+        "has_ai_assistent": int(test.has_ai_assistent),   
+        "allow_sound_analysis": int(test.allow_sound_analysis),  
+        "use_proctoring": int(test.use_proctoring),           
+    }
 
-    # ======================= ANSWERS =======================
-    answers = StudentAnswer.objects.filter(assignment=assignment)
-    total_chars = sum(len(a.answer_text or "") for a in answers)
-
-    question_ids = TestQuestion.objects.filter(test=test).values_list("question_id", flat=True)
-    questions = Question.objects.filter(id__in=question_ids)
-    q_types = questions.values_list("type", flat=True)
-    writing_required = any(t in ("open", "code") for t in q_types)
-
-    if assignment.started_at and assignment.finished_at and assignment.finished_at > assignment.started_at:
-        actual_time = (assignment.finished_at - assignment.started_at).total_seconds()
-    else:
-        actual_time = (assignment.test.duration_minutes or 30) * 60
-
-    chars_per_minute = total_chars / max(actual_time / 60, 1)
-    impossible_writing = is_humanly_possible_writing(chars_per_minute, key_presses, total_chars)
-
-    return {
-        # AUDIO
+    raw = {
         "voiced_seconds": round(voiced_seconds, 2),
-        "mouth_open_no_voice_count": voice_no_mouth_count,
-        "too_much_talking_count": too_much_talking_count,
-
-        # CAMERA
-        "multiple_faces_detected": multiple_faces_detected,
-        "face_mismatch_count": face_mismatch_count,
-        "no_face_detected_count": no_face_detected_count,
-        "gaze_left_count": gaze_left_count,
-        "gaze_right_count": gaze_right_count,
-        "gaze_down_count": gaze_down_count,
-        "mobile_detected_count": mobile_detected_count,
-        "head_down_count": head_down_count,
-        "total_gaze_offscreen": total_gaze_offscreen,
-        "offscreen_seconds": offscreen_seconds,
-
-        # KEYBOARD
+        "mobile_detected_count": mobile_detected,
+        "multiple_faces_detected": multiple_faces_flag,
+        "face_mismatch_count": face_mismatch_flag,
+        "no_face_detected_count": no_face_flag,
         "esc_pressed_count": esc_pressed,
         "second_screen_events": second_screen,
         "tab_switches_count": tab_switches,
-        "window_blur_count": window_blur,
-        "copy_paste_events": paste,
+        "window_blur_count": window_blurs,
         "key_press_count": key_presses,
-        "avg_key_delay": avg_delay,
-        "focus_lost_total": focus_lost,
         "total_chars": total_chars,
+        "avg_key_delay": avg_delay,
+        "chars_per_minute": round(cpm, 2),
+        "offscreen_seconds": offscreen_sec,
+    }
 
-        # CONTENT
-        "actual_test_time_seconds": round(actual_time, 2),
-        "chars_per_minute": round(chars_per_minute, 2),
-        "is_impossible_writing_speed": impossible_writing,
-        "writing_required": writing_required,
+    return {
+        "features": {**distilled, **modality_flags},
+        "raw": raw,
     }

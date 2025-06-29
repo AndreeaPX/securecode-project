@@ -2,18 +2,27 @@ from ai_models.predictor import predict_assignment
 from ai_models.features import extract_features_for_assignment
 from users.models.tests import StudentActivityLog
 
+def _flatten(fdict: dict) -> dict:
+    if "features" in fdict and "raw" in fdict:
+        flat = fdict["features"].copy()
+        flat.update(fdict["raw"])
+        return flat
+    return fdict
 
 def apply_rules(features, *, proctoring: bool = False) -> tuple[bool, str | None]:
-    duration = max(features.get("actual_test_time_seconds", 60.0), 60.0)
+    duration = max(
+        features.get("duration_seconds", 0.0) or features.get("actual_test_time_seconds", 60.0),
+        60.0
+    )
     offscreen_sec = features.get("offscreen_seconds", 0.0)
     offscreen_pct = offscreen_sec / duration
-    print(offscreen_sec)
-    print(offscreen_pct)
-    if offscreen_pct >= 0.60:
-        return True, f"Looked away for {offscreen_pct:.0%} of the test"
 
-    if not features.get("writing_required", False) and offscreen_pct >= 0.50:
-        return True, f"Looked away {offscreen_pct:.0%} of the quiz (no writing expected)"
+    if not features.get("writing_required", False):
+        if offscreen_pct >= 0.50:
+            return True, f"Looked away {offscreen_pct:.0%} of the quiz (no writing expected)"
+    else:
+        if offscreen_pct >= 0.90:  # optional: very extreme case
+            return True, f"Looked away {offscreen_pct:.0%} of the test (even with writing allowed)"
 
     if features.get("mobile_detected_count", 0) > 0:
         return True, "Phone detected in camera"
@@ -24,7 +33,7 @@ def apply_rules(features, *, proctoring: bool = False) -> tuple[bool, str | None
     if features.get("face_mismatch_count", 0) >= 2:
         return True, "Face mismatch detected repeatedly"
 
-    if features.get("voiced_seconds", 0) > 0.5 * duration and features.get("gaze_down_count", 0) > 0 and features.get("writting_required", False):
+    if features.get("voiced_seconds", 0) > 0.5 * duration and features.get("gaze_down_count", 0) > 0 and features.get("writing_required", False):
         return True, "Spoke extensively while looking down — potential off-device conversation"
 
     if features.get("writing_required", False):
@@ -35,11 +44,14 @@ def apply_rules(features, *, proctoring: bool = False) -> tuple[bool, str | None
             return True, "Text entered while no key-presses recorded"
 
     if proctoring:
-        if features.get("tab_switches_count", 0) > 2:
-            return True, "Switched tabs 3+ times"
+        if features.get("tab_switches_count", 0) >= 2:
+            return True, "Switched tabs 2+ times"
 
-        if features.get("esc_pressed_count", 0) > 2:
-            return True, "Pressed ESC 3+ times"
+        if features.get("second_screen_events", 0) >= 2:
+            return True, "Detected 2+ second screen events"
+
+        if features.get("esc_pressed_count", 0) >= 2:
+            return True, "Pressed ESC 2+ times"
 
     return False, None
 
@@ -55,9 +67,9 @@ def get_verdict_for_assignment(assignment, features=None):
         }
 
     features = features or extract_features_for_assignment(assignment)
+    features = _flatten(features)
 
-    
-    duration = features.get("actual_test_time_seconds", 600)
+    duration = features.get("duration_seconds", 600)
     if features.get("voiced_seconds", 0) < 0.5 * duration:
         features["voiced_seconds"] = 0
 

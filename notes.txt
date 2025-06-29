@@ -36,3 +36,15 @@ create_balanced_training_batch(student, test, num_per_type=25)
 
 
 QJW67L77D76VPLKCBE8EN5LX
+
+
+
+from users.models.tests import TestAssignment
+from ai_models.evaluation_engine import evaluate_assignment
+
+aid = 584
+
+assignment = TestAssignment.objects.get(id=aid)
+assignment.ai_evaluated_at = None
+assignment.save(update_fields=["ai_evaluated_at"])
+evaluate_assignment(assignment)

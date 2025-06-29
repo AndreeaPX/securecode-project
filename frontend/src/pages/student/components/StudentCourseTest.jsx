@@ -97,8 +97,14 @@ export default function StudentCourseTest() {
                     {test.type === "training" && test.allowed_attempts !== null && (
                       <>
                         <button
-                          onClick={() => {
-                            if (!disabled) navigate(`/tests/start/${test.assignment_id}`);
+                          onClick={ async () => {
+                            if (disabled) return;
+                            try{
+                              await axiosInstance.patch(`/test-assignments/${test.assignment_id}/start/`, { started_at: new Date().toISOString() });
+                            } catch (error){
+                              console.log("Failed to set started_at:", error);
+                            }
+                            navigate(`/tests/start/${test.assignment_id}`);
                           }}
                           disabled={disabled}
                           style={{
@@ -128,9 +134,15 @@ export default function StudentCourseTest() {
                 ) : (
                   <>
                     <button
-                      onClick={() => {
-                        if (!disabled) navigate(`/tests/start/${test.assignment_id}`);
-                      }}
+                          onClick={ async () => {
+                            if (disabled) return;
+                            try{
+                              await axiosInstance.patch(`/test-assignments/${test.assignment_id}/start/`, { started_at: new Date().toISOString() });
+                            } catch (error){
+                              console.log("Failed to set started_at:", error);
+                            }
+                            navigate(`/tests/start/${test.assignment_id}`);
+                          }}
                       disabled={disabled}
                       style={{
                         opacity: disabled ? 0.5 : 1,

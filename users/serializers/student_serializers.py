@@ -15,7 +15,6 @@ class AnswerItemSerializer(serializers.Serializer):
     question_id = serializers.IntegerField()
     answer_text = serializers.CharField(allow_blank = True, required = False)
     selected_option_ids = serializers.ListField(child = serializers.IntegerField(),required = False)
-    #time_spent = serializers.CharField(required=False)
 
 class SubmitAnswersSerializer(serializers.Serializer):
     assignment_id = serializers.IntegerField()
@@ -44,8 +43,6 @@ class SubmitAnswersSerializer(serializers.Serializer):
         data["assignment"] = assignment
         return data
 
-
-
     def create(self, validated_data):
         assignment = validated_data["assignment"]
         test = assignment.test
@@ -54,12 +51,14 @@ class SubmitAnswersSerializer(serializers.Serializer):
             assignment.answers.all().delete()
             StudentActivityLog.objects.filter(assignment=assignment, attempt_no__lt = assignment.attempt_no).delete()
             assignment.attempt_no += 1
-            
-            assignment.finished_at = timezone.now()
-            assignment.save()
+            assignment.save(update_fields=["attempt_no"])
 
         elif assignment.finished_at:
             return {"status": "already_submitted"}
+        
+        if assignment.started_at is None:
+            assignment.started_at = timezone.now()
+            assignment.save(update_fields=["started_at"])
 
         for item in validated_data["answers"]:
             question = Question.objects.get(id=item["question_id"])

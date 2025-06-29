@@ -53,6 +53,7 @@
 }
 
 .test-details {
+
   text-align: right;
   font-size: 0.9rem;
   opacity: 0.85;
@@ -69,6 +70,7 @@
 }
 
 .question-block strong {
+  color: #fff;
   display: block;
   font-size: 1.1rem;
   margin-bottom: 1rem;
